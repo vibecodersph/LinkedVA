@@ -52,8 +52,14 @@
 
         <label>
           Default reply language
-          <input type="text" name="targetLanguage" id="targetLanguage" placeholder="e.g., English">
+          <input type="text" name="targetLanguage" id="targetLanguage" list="languageOptions" autocomplete="off" placeholder="English, Spanish, or Japanese">
         </label>
+
+        <datalist id="languageOptions">
+          <option value="English">
+          <option value="Spanish">
+          <option value="Japanese">
+        </datalist>
 
         <button type="submit" id="generate">Generate brand voice</button>
       </form>

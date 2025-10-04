@@ -38,6 +38,10 @@
     brandProfile: null,
     activeTaskId: 0,
     isApiAvailable: 'LanguageModel' in self,
+    isDragging: false,
+    hasDragged: false,
+    dragOffset: { x: 0, y: 0 },
+    customPosition: null,
   };
 
   init();
@@ -57,7 +61,16 @@
     pill.type = 'button';
     pill.className = 'replybot-pill';
     pill.textContent = 'ReplyBot';
-    pill.addEventListener('click', togglePanel);
+    pill.style.cursor = 'grab';
+    pill.addEventListener('mousedown', handleDragStart);
+    pill.addEventListener('click', (event) => {
+      // Only toggle panel if user didn't drag
+      if (!state.hasDragged) {
+        togglePanel();
+      }
+      // Reset flag for next interaction
+      state.hasDragged = false;
+    });
 
     state.panel = document.createElement('div');
     state.panel.className = 'replybot-panel replybot-hidden';
@@ -85,6 +98,7 @@
 
   function attachListeners() {
     document.addEventListener('focusin', handleFocus, true);
+    document.addEventListener('focusout', handleBlur, true);
     document.addEventListener('scroll', reposition, true);
     window.addEventListener('resize', reposition);
     document.addEventListener('click', handleContextClick, true);
@@ -156,10 +170,80 @@
     if (!isEditableField(target)) {
       return;
     }
+    // Reset custom position when focusing a different field
+    if (state.target !== target) {
+      state.customPosition = null;
+    }
     state.target = target;
     state.contextRoot = findContextRoot(target);
     showContainer();
     reposition();
+  }
+
+  function handleBlur(event) {
+    // Use a small delay to allow focusin on another field to fire first
+    setTimeout(() => {
+      // Check if focus moved to another valid editable field
+      const currentFocus = document.activeElement;
+      
+      // Check if the current focus is within the ReplyBot UI
+      const focusedOnReplyBot = currentFocus && currentFocus.closest('[data-replybot-root]');
+      
+      // Don't hide if focus moved to ReplyBot or another valid editable field
+      if (!isEditableField(currentFocus) && !focusedOnReplyBot) {
+        // No valid field is focused and not interacting with ReplyBot, hide the container
+        hideContainer();
+        state.target = null;
+        state.contextRoot = null;
+      }
+    }, 10);
+  }
+
+  function isMessengerChat(node) {
+    // Check domain for standalone Messenger
+    const hostname = window.location.hostname.toLowerCase();
+    if (hostname.includes('messenger.com')) {
+      return true;
+    }
+
+    // Check URL path for embedded Messenger on Facebook
+    const pathname = window.location.pathname.toLowerCase();
+    if (hostname.includes('facebook.com') && (pathname.includes('/messages') || pathname.includes('/t/'))) {
+      return true;
+    }
+
+    // Check for Messenger-specific placeholders and attributes
+    const placeholder = node.getAttribute('placeholder')?.toLowerCase() || '';
+    const ariaLabel = node.getAttribute('aria-label')?.toLowerCase() || '';
+    const combinedText = `${placeholder} ${ariaLabel}`;
+
+    const messengerKeywords = [
+      'aa',  // Facebook Messenger's common placeholder
+      'message',
+      'send a message',
+      'type a message',
+      'write a message',
+      'start a conversation',
+      'send message'
+    ];
+
+    // Check if in Messenger UI containers
+    const messengerSelectors = [
+      '[role="complementary"]',
+      '[data-pagelet*="Messenger"]',
+      '[aria-label*="Messenger"]',
+      '[class*="messenger"]'
+    ];
+
+    const inMessengerContainer = messengerSelectors.some(selector => 
+      node.closest(selector)
+    );
+
+    const hasMessengerKeyword = messengerKeywords.some(keyword => 
+      combinedText.includes(keyword)
+    );
+
+    return inMessengerContainer || hasMessengerKeyword;
   }
 
   function isEditableField(node) {
@@ -169,24 +253,97 @@
     if (node.closest('[data-replybot-root]')) {
       return false;
     }
-    if (node.isContentEditable) {
+
+    // Block Messenger chats early before other validation
+    if (isMessengerChat(node)) {
+      return false;
+    }
+
+    // Only allow multi-line fields: textareas and contentEditable
+    // Exclude all single-line INPUT elements
+    const isTextarea = node.tagName === 'TEXTAREA';
+    const isContentEditable = node.isContentEditable;
+    const isTextbox = node.getAttribute('role') === 'textbox' && node.getAttribute('role') !== 'searchbox';
+
+    if (!isTextarea && !isContentEditable && !isTextbox) {
+      return false;
+    }
+
+    // Check for post creation indicators (exclude these)
+    const placeholder = node.getAttribute('placeholder')?.toLowerCase() || '';
+    const ariaLabel = node.getAttribute('aria-label')?.toLowerCase() || '';
+    const combinedText = `${placeholder} ${ariaLabel}`;
+
+    const postCreationKeywords = [
+      'what\'s on your mind',
+      'start a post',
+      'share an update',
+      'write a post',
+      'create a post',
+      'new post',
+      'share something',
+      'title',
+      'document name',
+      'file name',
+      'untitled',
+      'what do you want to talk about',
+      'what\'s happening',
+      'share your thoughts',
+      'start writing',
+      'compose'
+    ];
+
+    const hasPostCreationIndicator = postCreationKeywords.some(keyword => 
+      combinedText.includes(keyword)
+    );
+
+    if (hasPostCreationIndicator) {
+      return false;
+    }
+
+    // Check for comment/reply indicators (strong signals this IS a comment field)
+    const commentKeywords = [
+      'comment',
+      'reply',
+      'respond',
+      'write a comment',
+      'add a comment',
+      'leave a comment',
+      'your comment',
+      'your reply',
+      'write a reply',
+      'add a reply'
+    ];
+
+    const hasCommentIndicator = commentKeywords.some(keyword => 
+      combinedText.includes(keyword)
+    );
+
+    // Check if element is within a comment/reply context
+    const contextRoot = findContextRoot(node);
+    const hasCommentContext = contextRoot !== null && 
+      contextRoot !== node.closest('section, div'); // Has specific context, not just a generic div
+
+    // STRICT MODE: Only allow if has explicit comment indicators OR is within comment context
+    // This prevents false positives on post creation fields
+    if (hasCommentIndicator) {
       return true;
     }
-    if (node.tagName === 'TEXTAREA') {
+
+    if (hasCommentContext && !hasPostCreationIndicator) {
       return true;
     }
-    if (node.tagName === 'INPUT') {
-      const type = node.getAttribute('type')?.toLowerCase() || 'text';
-      return ['text', 'search', 'email', 'url'].includes(type);
-    }
-    if (node.getAttribute('role') === 'textbox') {
-      return true;
-    }
+
     return false;
   }
 
   function showContainer() {
     state.container.classList.remove('replybot-hidden');
+  }
+
+  function hideContainer() {
+    state.container.classList.add('replybot-hidden');
+    hidePanel();
   }
 
   function togglePanel() {
@@ -197,10 +354,89 @@
     state.panel.classList.add('replybot-hidden');
   }
 
+  function handleDragStart(event) {
+    // Prevent text selection during drag
+    event.preventDefault();
+    
+    const pill = event.currentTarget;
+    const rect = state.container.getBoundingClientRect();
+    
+    // Store offset from mouse to container top-left
+    state.dragOffset = {
+      x: event.clientX - rect.left,
+      y: event.clientY - rect.top
+    };
+    
+    state.isDragging = true;
+    state.hasDragged = false; // Reset at start of potential drag
+    pill.style.cursor = 'grabbing';
+    
+    // Add global event listeners
+    document.addEventListener('mousemove', handleDragMove);
+    document.addEventListener('mouseup', handleDragEnd);
+  }
+
+  function handleDragMove(event) {
+    if (!state.isDragging) return;
+    
+    // Mark that dragging has occurred
+    state.hasDragged = true;
+    
+    // Calculate new position
+    let newX = event.clientX - state.dragOffset.x + window.scrollX;
+    let newY = event.clientY - state.dragOffset.y + window.scrollY;
+    
+    // Get container dimensions
+    const rect = state.container.getBoundingClientRect();
+    const containerWidth = rect.width;
+    const containerHeight = rect.height;
+    
+    // Keep within viewport bounds with padding
+    const minX = window.scrollX + 12;
+    const maxX = window.scrollX + window.innerWidth - containerWidth - 12;
+    const minY = window.scrollY + 12;
+    const maxY = window.scrollY + window.innerHeight - containerHeight - 12;
+    
+    newX = Math.max(minX, Math.min(newX, maxX));
+    newY = Math.max(minY, Math.min(newY, maxY));
+    
+    // Store custom position
+    state.customPosition = { x: newX, y: newY };
+    
+    // Apply position
+    state.container.style.top = `${newY}px`;
+    state.container.style.left = `${newX}px`;
+  }
+
+  function handleDragEnd(event) {
+    if (!state.isDragging) return;
+    
+    state.isDragging = false;
+    
+    // Reset cursor
+    const pill = state.container.querySelector('.replybot-pill');
+    if (pill) {
+      pill.style.cursor = 'grab';
+    }
+    
+    // Remove global event listeners
+    document.removeEventListener('mousemove', handleDragMove);
+    document.removeEventListener('mouseup', handleDragEnd);
+  }
+
   function reposition() {
     if (!state.target) {
       return;
     }
+    
+    // Use custom position if set (user dragged it)
+    if (state.customPosition) {
+      state.container.style.top = `${state.customPosition.y}px`;
+      state.container.style.left = `${state.customPosition.x}px`;
+      return;
+    }
+    
+    // Default positioning relative to target field
     const rect = state.target.getBoundingClientRect();
     const top = Math.max(rect.top + window.scrollY - 40, window.scrollY + 12);
     const left = Math.min(rect.right + window.scrollX - 160, window.scrollX + window.innerWidth - 170);
@@ -484,7 +720,11 @@
     sections.push('2. A value-add reply offering help, insight, or direction.');
     sections.push('3. A warm or witty take that still respects all brand guardrails.');
     sections.push('Keep each reply under 600 characters, grounded in the thread details, and human in tone.');
-    sections.push('Return minified JSON only: {"drafts":[string,string,string]}');
+    sections.push('');
+    sections.push('CRITICAL: You MUST return ONLY valid JSON in this EXACT format:');
+    sections.push('{"drafts":["reply 1 text here","reply 2 text here","reply 3 text here"]}');
+    sections.push('');
+    sections.push('Do NOT include markdown code blocks, explanations, or any other text. ONLY the JSON object.');
     return sections.join('\n\n');
   }
 
@@ -568,6 +808,25 @@
     return typeof fact === 'string' ? fact.trim() : '';
   }
 
+  function getLanguageCode(languageName) {
+    if (!languageName) {
+      return 'en';
+    }
+    const normalized = languageName.toLowerCase().trim();
+    const languageMap = {
+      'english': 'en',
+      'spanish': 'es',
+      'español': 'es',
+      'espanol': 'es',
+      'japanese': 'ja',
+      '日本語': 'ja',
+      'ja': 'ja',
+      'en': 'en',
+      'es': 'es'
+    };
+    return languageMap[normalized] || 'en';
+  }
+
   async function callModel({ system, prompt, temperature = 0.7, topK = 5 }) {
     if (!state.isApiAvailable) {
       throw new Error('LanguageModel API unavailable.');
@@ -585,7 +844,14 @@
     const initialPrompts = [
       { role: 'system', content: systemSegments.join('\n\n') },
     ];
-    const session = await LanguageModel.create({ temperature, topK, initialPrompts });
+    const targetLanguage = state.brandProfile?.brandVoice?.targetLanguage;
+    const languageCode = getLanguageCode(targetLanguage);
+    const session = await LanguageModel.create({ 
+      temperature, 
+      topK, 
+      initialPrompts,
+      outputLanguage: languageCode
+    });
     try {
       return await runPrompt(session, prompt);
     } finally {
@@ -613,19 +879,89 @@
 
   function parseDrafts(raw) {
     const cleaned = sanitizeModelJson(raw);
+    
+    // Attempt 1: Try standard JSON.parse
     try {
       const parsed = JSON.parse(cleaned);
-      if (Array.isArray(parsed.drafts)) {
-        return parsed.drafts.map((draft) => String(draft));
+      if (Array.isArray(parsed.drafts) && parsed.drafts.length > 0) {
+        return parsed.drafts.map((draft) => String(draft)).slice(0, 3);
       }
     } catch (error) {
-      console.warn('Draft JSON parse failed', error, { raw, cleaned });
+      console.warn('Standard JSON parse failed, trying fallbacks', error);
     }
-    return cleaned
-      .split(/\n+/)
-      .map((line) => line.trim())
-      .filter(Boolean)
-      .slice(0, 3);
+    
+    // Attempt 2: Regex extraction of drafts array
+    try {
+      // Match "drafts":[...] or 'drafts':[...]
+      const arrayMatch = cleaned.match(/["']drafts["']\s*:\s*\[(.*?)\]/s);
+      if (arrayMatch && arrayMatch[1]) {
+        const arrayContent = arrayMatch[1];
+        // Extract strings within quotes
+        const stringMatches = arrayContent.match(/["']([^"']*?)["']/g);
+        if (stringMatches && stringMatches.length > 0) {
+          const drafts = stringMatches.map(str => 
+            str.slice(1, -1) // Remove surrounding quotes
+              .replace(/\\n/g, ' ') // Replace escaped newlines with spaces
+              .replace(/\\"/g, '"') // Unescape quotes
+              .replace(/\\\\/g, '\\') // Unescape backslashes
+              .trim()
+          ).filter(Boolean);
+          if (drafts.length > 0) {
+            console.log('Regex extraction successful', drafts);
+            return drafts.slice(0, 3);
+          }
+        }
+      }
+    } catch (error) {
+      console.warn('Regex extraction failed', error);
+    }
+    
+    // Attempt 3: Split by common delimiters and clean up
+    try {
+      // Remove common JSON artifacts
+      let content = cleaned
+        .replace(/^\{[^:]*:[\[\s]*/, '') // Remove {"drafts":[
+        .replace(/[\]\s]*\}$/, '') // Remove ]}
+        .replace(/\\n/g, ' ') // Replace escaped newlines
+        .replace(/\\"/g, '"'); // Unescape quotes
+      
+      // Split by common separators: "," or newlines with quotes
+      const lines = content
+        .split(/"\s*,\s*"|\n+/)
+        .map(line => 
+          line.trim()
+            .replace(/^["'\[\{]+/, '') // Remove leading quotes/brackets
+            .replace(/["'\]\}]+$/, '') // Remove trailing quotes/brackets
+            .replace(/^\d+\.\s*/, '') // Remove numbered list prefixes
+            .trim()
+        )
+        .filter(line => 
+          line.length > 10 && // Minimum meaningful length
+          !line.match(/^(drafts?|reply|option|\{|\}|\[|\]|null|undefined)$/i) // Filter out artifacts
+        );
+      
+      if (lines.length > 0) {
+        console.log('Delimiter split successful', lines);
+        return lines.slice(0, 3);
+      }
+    } catch (error) {
+      console.warn('Delimiter split failed', error);
+    }
+    
+    // Attempt 4: Last resort - return cleaned text as single draft
+    const lastResort = cleaned
+      .replace(/[\{\}\[\]"]/g, '') // Remove all JSON chars
+      .replace(/drafts?:/gi, '') // Remove "drafts:" labels
+      .trim();
+    
+    if (lastResort.length > 10) {
+      console.warn('Using last resort parsing, returning single draft');
+      return [lastResort];
+    }
+    
+    // Complete failure
+    console.error('All parsing attempts failed', { raw, cleaned });
+    return ['Unable to generate drafts. Please try again.'];
   }
 
   function sanitizeModelJson(text) {

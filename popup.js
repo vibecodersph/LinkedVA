@@ -299,16 +299,21 @@ async function ensureSession() {
   if (session) {
     return session;
   }
-  session = await LanguageModel.create({
+  
+  const config = {
     temperature: 0.6,
     topK: 5,
+    outputLanguage: 'en',
     initialPrompts: [
       {
         role: 'system',
         content: SYSTEM_PROMPT,
       }
     ],
-  });
+  };
+  
+  console.log('Creating session with config:', config);
+  session = await LanguageModel.create(config);
   return session;
 }
 
