@@ -70,6 +70,11 @@
   cursor: pointer;
 }
 
+.replybot-chip[data-action="draft"] {
+  background: #6366f1;
+  color: white;
+}
+
 .replybot-chip:disabled {
   background: #e2e8f0;
   color: #94a3b8;

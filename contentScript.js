@@ -83,7 +83,7 @@
     state.chips = document.createElement('div');
     state.chips.className = 'replybot-chips';
     state.chips.append(
-      createChip('Draft 3', 'draft'),
+      createChip('Draft', 'draft'),
       createChip('Translate', 'translate')
     );
     state.panel.appendChild(state.chips);
@@ -557,13 +557,19 @@
       setResults('<p class="replybot-error">No drafts returned.</p>');
       return;
     }
+    const draftLabels = [
+      'Question/Follow-up',
+      'Value-Add/Insight',
+      'Warm/Casual'
+    ];
     const fragment = document.createDocumentFragment();
     drafts.forEach((draft, index) => {
       const card = document.createElement('article');
       card.className = 'replybot-draft';
 
       const title = document.createElement('header');
-      title.textContent = `Option ${index + 1}`;
+      const label = draftLabels[index] || `Option ${index + 1}`;
+      title.textContent = label;
       card.appendChild(title);
 
       const body = document.createElement('p');
@@ -720,6 +726,7 @@
     sections.push('2. A value-add reply offering help, insight, or direction.');
     sections.push('3. A warm or witty take that still respects all brand guardrails.');
     sections.push('Keep each reply under 600 characters, grounded in the thread details, and human in tone.');
+    sections.push('Do NOT use em dashes (–) or en dashes (—). Use regular hyphens (-) or avoid dashes entirely.'); // ADD THIS
     sections.push('');
     sections.push('CRITICAL: You MUST return ONLY valid JSON in this EXACT format:');
     sections.push('{"drafts":["reply 1 text here","reply 2 text here","reply 3 text here"]}');
