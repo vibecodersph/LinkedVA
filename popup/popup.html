@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LinkedVA - Virtual Assistant for LinkedIn</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <main>
+    <header>
+      <h1>🤖 LinkedVA</h1>
+      <p class="subtitle">AI-powered assistant for LinkedIn Virtual Assistants</p>
+    </header>
+
+    <nav class="tab-nav">
+      <button class="tab-btn active" data-tab="brand">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+        </svg>
+        Brand Setup
+      </button>
+      <button class="tab-btn" data-tab="leads">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+        </svg>
+        Leads
+      </button>
+    </nav>
+
+    <div class="tab-content">
+      <section id="brand-tab" class="tab-pane active">
+        <div class="tab-header">
+          <h2>Brand Voice Setup</h2>
+          <p class="muted">Configure your brand personality for AI-generated replies</p>
+        </div>
+
+        <form id="brand-setup-form">
+          <fieldset>
+            <legend>Brand Identity</legend>
+            
+            <label>
+              Business Name
+              <input type="text" id="business-name" placeholder="e.g., Acme Corp" required>
+            </label>
+
+            <label>
+              Tagline
+              <input type="text" id="tagline" placeholder="e.g., Innovation at your fingertips">
+            </label>
+
+            <label>
+              Description
+              <textarea id="description" rows="3" placeholder="Brief description of what your business does..." required></textarea>
+              <span class="hint">What does your business do? What makes it unique?</span>
+            </label>
+          </fieldset>
+
+          <fieldset>
+            <legend>Brand Voice</legend>
+            
+            <label>
+              Tone
+              <input type="text" id="tone" placeholder="e.g., Professional, friendly, conversational" required>
+              <span class="hint">How should the AI sound? (friendly, professional, casual, etc.)</span>
+            </label>
+
+            <label>
+              Core Values
+              <textarea id="values" rows="3" placeholder="e.g., Innovation, integrity, customer success..." required></textarea>
+              <span class="hint">What principles guide your brand?</span>
+            </label>
+
+            <label>
+              Target Audience
+              <textarea id="audience" rows="2" placeholder="e.g., Small business owners, tech-savvy professionals..." required></textarea>
+            </label>
+          </fieldset>
+
+          <fieldset>
+            <legend>Reply Guidelines</legend>
+            
+            <label>
+              Do's
+              <textarea id="dos" rows="3" placeholder="e.g., Use emojis, mention our free trial, focus on benefits..."></textarea>
+              <span class="hint">What should the AI include or emphasize?</span>
+            </label>
+
+            <label>
+              Don'ts
+              <textarea id="donts" rows="3" placeholder="e.g., Don't be too salesy, avoid jargon, never promise discounts..."></textarea>
+              <span class="hint">What should the AI avoid?</span>
+            </label>
+          </fieldset>
+
+          <button type="submit">💾 Save Brand Profile</button>
+        </form>
+
+        <div id="brand-output" hidden>
+          <h2>Master Prompt</h2>
+          <textarea id="master-prompt" readonly rows="8"></textarea>
+          <div class="actions">
+            <button id="copy-master">📋 Copy Prompt</button>
+            <button id="export">💾 Export JSON</button>
+            <label class="import">
+              📂 Import JSON
+              <input type="file" id="import" accept=".json">
+            </label>
+          </div>
+        </div>
+
+        <div id="status" class="status" hidden></div>
+      </section>
+
+      <section id="leads-tab" class="tab-pane">
+        <div class="tab-header">
+          <h2>Lead Management</h2>
+          <p class="muted">View and manage extracted leads from LinkedIn & social profiles</p>
+        </div>
+
+        <div class="stats">
+          <div class="stat-item">
+            <div class="stat-number" id="total-leads">0</div>
+            <div class="stat-label">Total Leads</div>
+          </div>
+        </div>
+
+        <div class="actions-bar">
+          <button class="btn btn-primary" id="export-csv">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            Export CSV
+          </button>
+          <button class="btn btn-danger" id="clear-all">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+            </svg>
+            Clear All
+          </button>
+        </div>
+
+        <div id="leads-container" class="leads-list"></div>
+
+        <div id="empty-state" class="empty-state">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+          </svg>
+          <p>No leads yet</p>
+          <small>Visit a LinkedIn profile or social media page and click "Extract Lead" to get started</small>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <script type="module" src="popup.js"></script>
+</body>
+</html>

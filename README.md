@@ -1,12 +1,39 @@
-# ReplyBot Chrome Extension
+# 🤖 LinkedVA
 
-ReplyBot is a Chrome extension for the **Google Chrome Built-in AI Challenge 2025** that uses Gemini Nano's on-device AI to generate brand-aware replies across any website.
+**AI-powered assistant for LinkedIn Virtual Assistants**
 
-## Prerequisites
+LinkedVA is a Chrome extension that helps Virtual Assistants work faster and smarter on LinkedIn. Generate on-brand replies and extract leads effortlessly using Chrome's built-in Gemini Nano AI—100% on-device, privacy-first.
+
+---
+
+## 🎯 Features
+
+### 🤖 Smart Reply Generation
+- **Brand-Aware Replies**: Generate 3 reply options that match your brand voice
+- **Context Detection**: Automatically reads comment threads for relevant responses
+- **Multi-Language Support**: Output in English, Spanish, or Japanese
+- **Translation**: Convert drafts to your target language while maintaining brand voice
+- **Draggable UI**: Repositionable interface that stays out of your way
+
+### 👥 Intelligent Lead Extraction
+- **AI-Powered Extraction**: Capture Name, Role, Company, and Email from any webpage
+- **One-Click Capture**: Floating button for quick lead extraction
+- **Lead Management**: View, organize, and manage all extracted leads
+- **Export Options**: Copy to clipboard or export as CSV
+- **Smart Parsing**: Works on LinkedIn profiles, company websites, and more
+
+### 🔒 Privacy-First
+- **100% On-Device Processing**: All AI runs locally using Gemini Nano
+- **Zero Data Collection**: No external API calls or tracking
+- **No Cloud Storage**: Everything stays on your device
+
+---
+
+## 📋 Prerequisites
 
 ### 1. Chrome Setup
 - **Required**: Chrome Canary or Dev channel (version 131+)
-- Download: [Chrome Canary](https://www.google.com/chrome/canary/)
+- **Download**: [Chrome Canary](https://www.google.com/chrome/canary/)
 
 ### 2. Enable Required Flags
 Navigate to `chrome://flags` and enable:
@@ -23,72 +50,126 @@ Navigate to `chrome://flags` and enable:
 
 ### 4. Verify Installation
 1. Open DevTools Console (F12) on any page
-2. Type: `await LanguageModel.capabilities()`
+2. Type: `await ai.languageModel.capabilities()`
 3. Should return: `{available: "readily"}`
 
 If you see `{available: "after-download"}`, wait a few minutes and check again.
 
-## Installation
+---
 
-1. Clone this repository
-2. Open `chrome://extensions`
+## 🚀 Installation
+
+1. Clone this repository:
+   ```bash
+   git clone https://github.com/yourusername/linkedva.git
+   cd linkedva
+   ```
+
+2. Open `chrome://extensions` in Chrome
+
 3. Enable **Developer mode** (top right toggle)
+
 4. Click **Load unpacked**
+
 5. Select the `replyBot` folder
+
 6. Pin the extension to your toolbar
 
-## Setup Your Brand Profile
+---
 
-1. Click the ReplyBot extension icon
-2. Fill in your brand details:
-   - **Brand mission**: What you're trying to achieve
-   - **Three adjectives**: Describing your tone (comma-separated)
-   - **Do's**: Tone, phrases, or guardrails to follow
-   - **Don'ts**: Topics or language to avoid
-   - **(Optional)** Brand fact/tagline to weave into replies
-   - **(Optional)** Sample replies for reference
-   - **Default reply language**: English, Spanish, or Japanese
-3. Click **Generate brand voice**
-4. Wait 10-20 seconds for AI to create your brand voice profile
-5. Your profile is saved locally in `chrome.storage`
+## 📖 Setup & Usage
 
-## Usage
+### Setting Up Your Brand Voice
+
+1. Click the LinkedVA extension icon
+2. Go to the **Brand Setup** tab (default)
+3. Fill in your brand details:
+   - **Business Name**: Your company name
+   - **Tagline**: Brief tagline
+   - **Description**: What your business does
+   - **Tone**: How the AI should sound (e.g., professional, friendly)
+   - **Core Values**: Principles that guide your brand
+   - **Target Audience**: Who you're speaking to
+   - **Do's**: What to include or emphasize
+   - **Don'ts**: What to avoid
+4. Click **Save Brand Profile**
+5. Your profile is saved locally in Chrome storage
 
 ### Generating Replies
 
-1. Navigate to any website with comments (LinkedIn, Twitter, Reddit, Facebook, etc.)
+1. Navigate to any website with comments (LinkedIn, Twitter, Reddit, etc.)
 2. Click on a **reply or comment field** (multi-line text areas)
-3. ReplyBot pill appears in the top-right corner of your screen
+3. LinkedVA pill appears in the top-right corner
 4. Click the pill to open the panel
-5. Click **Draft 3** to generate three reply options based on the comment context
-6. Review the three options and click **Insert** to add one to the field
+5. Click **Draft 3** to generate three reply options
+6. Review options and click **Insert** to add one to the field
 7. Edit as needed and post
 
-### Dragging ReplyBot
-- The ReplyBot pill is **draggable**
-- Click and drag to reposition if it blocks your view
+**Dragging LinkedVA:**
+- Click and drag the pill to reposition if it blocks your view
 - Position persists while focused on the same field
-- Position resets when you focus on a different field
+- Resets when you focus on a different field
 
-### Translation Feature
+**Translation:**
 - Type your draft in the comment field first
-- Click the ReplyBot pill
+- Click the LinkedVA pill
 - Click **Translate** to convert to your default reply language
-- Maintains your brand voice during translation
 
-## Technical Architecture
+### Extracting Leads
+
+1. Navigate to any webpage (LinkedIn profile, company website, etc.)
+2. **(Optional)** Highlight specific text containing lead information
+3. Click the floating **"Extract Lead"** button (bottom-right)
+4. Wait 2-5 seconds for AI extraction
+5. Lead is automatically saved
+
+### Managing Leads
+
+1. Click the extension icon to open the popup
+2. Switch to the **Leads** tab
+3. View all extracted leads with details
+4. **Copy Individual Lead**: Click the copy icon
+5. **Export to CSV**: Click "Export CSV" to download
+6. **Delete Lead**: Click trash icon
+7. **Clear All**: Click "Clear All" (confirmation required)
+
+---
+
+## 🏗️ Technical Architecture
+
+### Project Structure
+```
+linkedva/
+├── manifest.json                    # Extension configuration
+├── background/
+│   └── service_worker.js           # Lead extraction logic & messaging
+├── content/
+│   ├── replyBot.js                 # Reply generation UI & logic
+│   ├── replyBot.css                # ReplyBot styles
+│   ├── leadExtract.js              # Lead extraction UI
+│   └── leadExtract.css             # Lead extraction styles
+├── popup/
+│   ├── popup.html                  # Tabbed interface
+│   ├── popup.css                   # Modern UI styles
+│   ├── popup.js                    # Tab navigation controller
+│   └── tabs/
+│       ├── brandSetup.js           # Brand voice setup logic
+│       └── leadManagement.js       # Lead management logic
+├── assets/
+│   ├── icon16.png
+│   ├── icon32.png
+│   ├── icon48.png
+│   └── icon128.png
+├── BRAND_GUIDE.md                  # Brand guidelines & design system
+├── DESIGN_SYSTEM.md                # Detailed design specifications
+└── README.md
+```
 
 ### On-Device AI Processing
 - Uses Chrome's **Gemini Nano** model via Prompt API
 - All processing happens locally (zero network calls)
-- **Privacy-first**: no data leaves your device
-- Supports English, Spanish, and Japanese output languages
-
-### Key Components
-- **Content Script** (`contentScript.js`): Detects reply fields, injects draggable UI, manages AI sessions
-- **Popup** (`popup.html`/`popup.js`): Brand profile configuration and management
-- **Chrome Storage**: Local storage of brand voice (no cloud sync)
-- **Smart Detection**: Only triggers on comment/reply fields, excludes search bars and post creation
+- Privacy-first: no data leaves your device
+- Supports English, Spanish, and Japanese output
 
 ### AI Workflow
 1. **Context Collection**: Extracts comment thread and recent replies
@@ -97,7 +178,9 @@ If you see `{available: "after-download"}`, wait a few minutes and check again.
 4. **Safety Filter**: Reviews drafts for brand compliance
 5. **Multi-layer Parsing**: Handles malformed JSON with 4 fallback strategies
 
-## Troubleshooting
+---
+
+## 🔧 Troubleshooting
 
 ### "LanguageModel API unavailable"
 - Verify Gemini Nano downloaded: `chrome://components`
@@ -105,15 +188,10 @@ If you see `{available: "after-download"}`, wait a few minutes and check again.
 - Restart Chrome completely
 - Wait 5 minutes after download completes
 
-### "No output language was specified" warning
-- This is expected - extension explicitly sets output language
-- Check console logs with the debug version
-- Should see: `Creating session with config: { outputLanguage: 'en', ... }`
-
-### ReplyBot doesn't appear
+### LinkedVA doesn't appear
 - Only triggers on **multi-line comment/reply fields**
-- **Excludes**: search bars, post creation fields, single-line inputs, document titles
-- **Messenger chats are intentionally excluded** (Facebook Messenger, messenger.com)
+- **Excludes**: search bars, post creation fields, single-line inputs
+- **Messenger chats are intentionally excluded**
 - Must have placeholder/aria-label containing "comment" or "reply" keywords
 
 ### "No safe drafts generated"
@@ -121,72 +199,157 @@ If you see `{available: "after-download"}`, wait a few minutes and check again.
 - Try focusing on a specific comment thread with clear context
 - Ensure brand profile is properly configured with Do's and Don'ts
 
-### Dragging toggles the panel
-- Fixed: Dragging no longer triggers panel toggle
-- Only clicking (without dragging) opens/closes the panel
+### Lead Extraction Not Working
+- Open DevTools Console (F12) and check for errors
+- Verify page content is accessible (some sites may block content scripts)
+- Try highlighting specific text and extracting again
 
-### Model returns malformed JSON
-- Known Gemini Nano limitation
-- Extension has **4-layer fallback parsing**:
-  1. Standard JSON.parse
-  2. Regex extraction of drafts array
-  3. Delimiter split with cleanup
-  4. Last resort single draft return
-- Retry generation if all parsing attempts fail
+### Poor Lead Extraction Quality
+- AI works best with clearly formatted content
+- Try highlighting just the relevant section
+- Some pages may have too much noise/ads
 
-## APIs Used
+---
 
-This extension uses the following Chrome Built-in AI APIs:
+## 🎯 Use Cases
+
+### For Virtual Assistants
+- Quickly respond to LinkedIn comments with consistent brand voice
+- Extract lead information from profiles and company websites
+- Maintain professionalism across multiple client accounts
+- Export leads for CRM integration
+
+### For Social Media Managers
+- Generate brand-safe replies across platforms
+- Capture influencer contact information
+- Maintain consistent tone across conversations
+- Track and organize potential partnerships
+
+### For Sales Teams
+- Extract prospect information from company websites
+- Generate personalized outreach based on brand guidelines
+- Organize leads with timestamps and sources
+- Export to spreadsheets for pipeline management
+
+---
+
+## 🎨 UI/UX Highlights
+
+- **Modern Design**: Purple gradient header with dark theme
+- **Tabbed Interface**: Clean separation between Brand Setup and Lead Management
+- **Smooth Animations**: Fade-in transitions and hover effects
+- **Responsive Design**: Optimized popup dimensions (600px width)
+- **Visual Feedback**: Status messages, loading states, and success indicators
+- **Accessible**: Keyboard navigation support, semantic HTML
+
+---
+
+## 🔒 Privacy & Security
+
+- ✅ All AI processing happens **on-device** using Gemini Nano
+- ✅ **No external API calls** or data transmission
+- ✅ Data stored locally in Chrome storage only
+- ✅ No telemetry or tracking
+- ✅ Open source - audit the code yourself
+
+---
+
+## 📊 Chrome APIs Used
 
 - **Prompt API**: Core text generation for replies and brand voice creation
 - **LanguageModel API**: Session management with custom system prompts
 - **Output Language Control**: English ('en'), Spanish ('es'), Japanese ('ja')
+- **Chrome Storage API**: Local data persistence
+- **Chrome Runtime API**: Message passing between components
+- **Content Scripts API**: Page interaction and UI injection
 
-## Hackathon Submission Details
+---
 
-**Challenge**: Google Chrome Built-in AI Challenge 2025  
-**Track**: Chrome Extensions  
-**Category**: Most Helpful  
-**Problem Solved**: Maintaining consistent brand voice across fragmented online communications  
-**Unique Approach**: On-device, privacy-first AI writing assistant that works universally across all websites with smart field detection
-
-## Features
-
-✅ **Smart Content Detection**: Only appears on relevant comment/reply fields  
-✅ **Drag-and-Drop UI**: Repositionable interface that doesn't obstruct content  
-✅ **Context-Aware**: Reads conversation threads for relevant replies  
-✅ **Multi-Language**: English, Spanish, Japanese output with translation  
-✅ **Brand Voice Learning**: Generates consistent tone from simple inputs  
-✅ **Safety Filtering**: Reviews drafts for brand compliance  
-✅ **Robust Parsing**: Handles AI model inconsistencies gracefully  
-✅ **Privacy-First**: 100% on-device processing, zero data collection
-
-## Known Limitations
+## 🎯 Known Limitations
 
 - Chrome Canary/Dev only (experimental Prompt API)
 - English, Spanish, Japanese output only
 - Model quality varies by hardware capabilities
 - Some complex parsing failures with heavily malformed AI output
 - Requires ~1.7GB disk space for Gemini Nano model
+- Extraction accuracy depends on page content structure
 
-## Future Enhancements
+---
+
+## 🔮 Future Enhancements
 
 If Chrome ships Gemini Nano to stable:
 - Chrome Web Store distribution
 - Additional language support
 - Multimodal input (images, audio)
-- Hybrid AI with cloud fallback for complex queries
-- Platform-specific UI optimizations
-- Improved context extraction algorithms
+- Advanced lead filtering and search
+- CRM integration APIs
+- Team collaboration features
+- Analytics dashboard
+- Custom extraction templates
+- Bulk operations support
 
-## License
+---
 
-MIT License - See LICENSE file
+## 📝 Changelog
 
-## Contributing
+### Version 2.0.0 (Current)
+- ✨ Rebranded to **LinkedVA**
+- ✨ Modern UI redesign with purple gradient and dark theme
+- ✨ Merged lead extraction functionality
+- ✨ New tabbed interface for Brand Setup and Leads
+- ✨ AI-powered lead extraction and management
+- ✨ Export leads to CSV
+- ✨ Unified design system
+- ✨ Background service worker for lead processing
+- ✨ Modular popup architecture
+- 🎨 Complete UI/UX redesign with 600px popup width
+- 📦 Comprehensive brand guide documentation
 
-This is a hackathon submission project. Feedback and suggestions welcome via issues!
+### Version 0.1.0
+- 🎉 Initial release (ReplyBot only)
+- 🤖 Brand-aware reply generation
+- 🌐 Multi-language support
+- 🎨 Draggable UI
+- 📝 Brand voice configuration
+
+---
+
+## 🤝 Contributing
+
+Contributions are welcome! Please open an issue or PR for:
+- Bug fixes
+- Feature enhancements
+- Documentation improvements
+- Better extraction/generation prompts
+- UI/UX improvements
+
+---
+
+## 📄 License
+
+MIT License - See LICENSE file for details
+
+---
+
+## 🏆 Hackathon Submission
+
+**Challenge**: Google Chrome Built-in AI Challenge 2025
+**Track**: Chrome Extensions
+**Category**: Most Helpful
+**Problem Solved**: Helping Virtual Assistants maintain consistent brand voice and efficiently capture leads on LinkedIn
+**Unique Approach**: Unified on-device, privacy-first AI assistant combining reply generation and lead extraction
+
+---
+
+## 📧 Credits
+
+Built for Virtual Assistants, social media managers, and professionals who need efficient LinkedIn tools.
 
 ---
 
 > ⚠️ **Experimental Technology**: The Prompt API is still experimental. Expect platform changes and keep an eye on Chrome Canary release notes.
+
+---
+
+**Made with ❤️ using Chrome's Built-in AI**
