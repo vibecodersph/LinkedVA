@@ -77,9 +77,41 @@ async function loadTab(tabName) {
   }
 }
 
-// Load the default tab (brand setup)
+// Load the default tab (leads if brand is set up, otherwise brand setup)
 async function loadDefaultTab() {
-  await loadTab('brand');
+  // Check if brand profile exists
+  const stored = await chrome.storage.local.get('brandProfile');
+  const hasBrandProfile = stored.brandProfile && stored.brandProfile.masterPrompt;
+
+  let defaultTab = 'brand';
+
+  if (hasBrandProfile) {
+    // Brand is already set up, show leads tab
+    defaultTab = 'leads';
+
+    // Switch active button state
+    const tabButtons = document.querySelectorAll('.tab-btn');
+    tabButtons.forEach(btn => {
+      if (btn.dataset.tab === 'leads') {
+        btn.classList.add('active');
+      } else {
+        btn.classList.remove('active');
+      }
+    });
+
+    // Switch active tab pane
+    const tabPanes = document.querySelectorAll('.tab-pane');
+    tabPanes.forEach(pane => {
+      if (pane.id === 'leads-tab') {
+        pane.classList.add('active');
+      } else {
+        pane.classList.remove('active');
+      }
+    });
+  }
+
+  currentTab = defaultTab;
+  await loadTab(defaultTab);
 }
 
 // Export for debugging

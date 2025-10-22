@@ -289,10 +289,11 @@ function hydrateUI(profile) {
 async function ensureSession() {
   if (session) return session;
 
-  // Create session directly without capabilities check
+  // Create session with output language
   session = await LanguageModel.create({
     temperature: 0.7,
     topK: 5,
+    outputLanguage: 'en',
   });
 
   return session;

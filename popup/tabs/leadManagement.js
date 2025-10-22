@@ -78,13 +78,13 @@ function updateUI() {
           <div class="lead-role">${escapeHtml(lead.role) || 'No role specified'}</div>
         </div>
         <div class="lead-actions">
-          <button class="icon-btn" onclick="copyLead(${index})" title="Copy lead info">
+          <button class="icon-btn copy-lead-btn" data-index="${index}" title="Copy lead info">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
               <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
             </svg>
           </button>
-          <button class="icon-btn" onclick="deleteLead(${index})" title="Delete lead">
+          <button class="icon-btn delete-lead-btn" data-index="${index}" title="Delete lead">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <polyline points="3 6 5 6 21 6"></polyline>
               <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
@@ -119,6 +119,21 @@ function updateUI() {
       </div>
     </div>
   `).join('');
+
+  // Add event listeners to lead action buttons
+  document.querySelectorAll('.copy-lead-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const index = parseInt(btn.dataset.index);
+      copyLead(index);
+    });
+  });
+
+  document.querySelectorAll('.delete-lead-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const index = parseInt(btn.dataset.index);
+      deleteLead(index);
+    });
+  });
 }
 
 // Export to CSV
@@ -264,10 +279,6 @@ function showNotification(message, type = 'info') {
     }, 300);
   }, 3000);
 }
-
-// Make functions globally accessible for inline onclick handlers
-window.copyLead = copyLead;
-window.deleteLead = deleteLead;
 
 // Return API for tab controller
 return {

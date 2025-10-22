@@ -8,6 +8,12 @@
   }
   window.leadExtractInitialized = true;
 
+  // Only initialize on LinkedIn
+  const hostname = window.location.hostname.toLowerCase();
+  if (!hostname.includes('linkedin.com')) {
+    return;
+  }
+
 let extractButton = null;
 let isExtracting = false;
 
@@ -86,19 +92,34 @@ async function handleExtractClick() {
     const pageContent = extractPageContent();
 
     // Send to background script for AI processing
-    const response = await chrome.runtime.sendMessage({
-      action: 'extractLead',
-      pageContent,
-      selectedText
-    });
-
-    if (response.success) {
-      // Save lead
-      await chrome.runtime.sendMessage({
-        action: 'saveLead',
-        lead: response.data,
-        url: window.location.href
+    let response;
+    try {
+      response = await chrome.runtime.sendMessage({
+        action: 'extractLead',
+        pageContent,
+        selectedText
       });
+    } catch (err) {
+      if (err.message && err.message.includes('Extension context invalidated')) {
+        throw new Error('Extension was reloaded. Please refresh this page and try again.');
+      }
+      throw err;
+    }
+
+    if (response && response.success) {
+      // Save lead
+      try {
+        await chrome.runtime.sendMessage({
+          action: 'saveLead',
+          lead: response.data,
+          url: window.location.href
+        });
+      } catch (err) {
+        if (err.message && err.message.includes('Extension context invalidated')) {
+          throw new Error('Extension was reloaded. Please refresh this page and try again.');
+        }
+        throw err;
+      }
 
       // Show success
       showNotification('Lead extracted successfully!', 'success');
@@ -119,7 +140,7 @@ async function handleExtractClick() {
         resetButton();
       }, 2000);
     } else {
-      throw new Error(response.error || 'Extraction failed');
+      throw new Error((response && response.error) || 'Extraction failed');
     }
   } catch (error) {
     console.error('[Lead Extractor] Error:', error);
