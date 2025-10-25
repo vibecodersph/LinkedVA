@@ -4,7 +4,13 @@
   }
   window.replyBotInitialized = true;
 
-  const BASE_SYSTEM_PROMPT = `You are ReplyBot, an on-device assistant that helps virtual assistants reply to conversations.
+  // Only initialize on LinkedIn
+  const hostname = window.location.hostname.toLowerCase();
+  if (!hostname.includes('linkedin.com')) {
+    return;
+  }
+
+  const BASE_SYSTEM_PROMPT = `You are LinkedVA, an on-device assistant that helps virtual assistants reply to conversations on LinkedIn.
 - Always respect the brand voice JSON shared via system prompts.
 - Default to clear, concise, human-sounding writing.
 - If you cannot complete a request, explain why.`;
@@ -60,7 +66,7 @@
     const pill = document.createElement('button');
     pill.type = 'button';
     pill.className = 'replybot-pill';
-    pill.textContent = 'ReplyBot';
+    pill.textContent = 'LinkedVA';
     pill.style.cursor = 'grab';
     pill.addEventListener('mousedown', handleDragStart);
     pill.addEventListener('click', (event) => {
@@ -751,7 +757,7 @@
 
   async function reviewDraftWithGuardrail(draft, context, summary, brandFact) {
     try {
-      const prompt = `Evaluate the reply below. Fix grammar and punctuation. Reject or rewrite anything that sounds generic, spammy, off-topic, or violates the brand guardrails${brandFact ? `. Ensure any usage of the brand fact stays accurate: ${brandFact}` : ''}.\n\nThread summary:\n${summary}\n\nMessage to respond to:\n${context.primary}\n\nDraft reply:\n${draft}\n\nRespond with minified JSON {"status":"ok"|"reject","reply":string}. If you reject and cannot fix it safely, return an empty string reply.`;
+      const prompt = `Evaluate the reply below. Fix grammar and punctuation. Reject or rewrite anything that sounds generic, spammy, off-topic, or violates the brand guardrails${brandFact ? `. Ensure any usage of the brand fact stays accurate: ${brandFact}` : ''}.\n\nThread summary:\n${summary}\n\nMessage to respond to:\n${context.primary}\n\nDraft reply:\n${draft}\n\nIMPORTANT: Escape all quotes and special characters in the reply text properly. Replace em dashes with regular hyphens.\n\nRespond with minified JSON {"status":"ok"|"reject","reply":"text here"}. If you reject and cannot fix it safely, return an empty string reply.`;
       const response = await callModel({
         temperature: 0.2,
         topK: 3,
@@ -759,9 +765,29 @@
         prompt,
       });
       const cleaned = sanitizeModelJson(response);
-      return JSON.parse(cleaned);
+
+      // Try to parse, with fallback
+      try {
+        return JSON.parse(cleaned);
+      } catch (parseError) {
+        console.warn('JSON parse failed, trying to fix:', cleaned);
+        // Try to extract status and reply manually
+        const statusMatch = cleaned.match(/"status"\s*:\s*"(ok|reject)"/);
+        const replyMatch = cleaned.match(/"reply"\s*:\s*"([^"]*)"/);
+
+        if (statusMatch && replyMatch) {
+          return {
+            status: statusMatch[1],
+            reply: replyMatch[1]
+          };
+        }
+
+        // Last resort: just use the original draft
+        throw parseError;
+      }
     } catch (error) {
       console.warn('Safety filter failed', error);
+      // Return original draft if safety check fails
       return { status: 'ok', reply: draft };
     }
   }

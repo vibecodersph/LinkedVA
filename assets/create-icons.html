@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Generate Extension Icons</title>
+</head>
+<body>
+  <canvas id="canvas"></canvas>
+  <script>
+    // Simple script to generate placeholder icons
+    // Open this in a browser and save the images that are generated
+
+    const sizes = [16, 32, 48, 128];
+
+    sizes.forEach(size => {
+      const canvas = document.createElement('canvas');
+      canvas.width = size;
+      canvas.height = size;
+      const ctx = canvas.getContext('2d');
+
+      // Gradient background
+      const gradient = ctx.createLinearGradient(0, 0, size, size);
+      gradient.addColorStop(0, '#667eea');
+      gradient.addColorStop(1, '#764ba2');
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, size, size);
+
+      // Draw person icon
+      ctx.strokeStyle = 'white';
+      ctx.lineWidth = size / 16;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+
+      // Head
+      ctx.beginPath();
+      ctx.arc(size / 2, size * 0.35, size / 6, 0, Math.PI * 2);
+      ctx.stroke();
+
+      // Body
+      ctx.beginPath();
+      ctx.arc(size / 2, size * 0.65, size / 4, Math.PI, 0);
+      ctx.stroke();
+
+      // Plus sign
+      const plusSize = size / 8;
+      const plusX = size * 0.75;
+      const plusY = size * 0.3;
+
+      ctx.beginPath();
+      ctx.moveTo(plusX - plusSize, plusY);
+      ctx.lineTo(plusX + plusSize, plusY);
+      ctx.moveTo(plusX, plusY - plusSize);
+      ctx.lineTo(plusX, plusY + plusSize);
+      ctx.stroke();
+
+      // Download
+      const link = document.createElement('a');
+      link.download = `icon${size}.png`;
+      link.href = canvas.toDataURL();
+      link.textContent = `Download icon${size}.png`;
+      document.body.appendChild(link);
+      document.body.appendChild(document.createElement('br'));
+    });
+
+    document.body.insertBefore(
+      document.createTextNode('Right-click each link below and "Save link as..." to download the icons:'),
+      document.body.firstChild
+    );
+    document.body.insertBefore(document.createElement('br'), document.body.firstChild);
+    document.body.insertBefore(document.createElement('br'), document.body.firstChild);
+  </script>
+</body>
+</html>

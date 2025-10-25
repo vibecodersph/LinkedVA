@@ -1,0 +1,92 @@
+/* content/leadExtract.css */
+/* Styles for the floating extract button and notifications */
+
+#lead-extract-button {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  border-radius: 50px;
+  padding: 12px 20px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: move;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  z-index: 999999;
+  transition: all 0.3s ease;
+  user-select: none;
+}
+
+#lead-extract-button:hover {
+  transform: scale(1.05);
+  box-shadow: 0 6px 16px rgba(102, 126, 234, 0.5);
+}
+
+#lead-extract-button svg {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+}
+
+#lead-extract-button.loading {
+  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  cursor: wait;
+}
+
+#lead-extract-button.success {
+  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+}
+
+#lead-extract-button .spin {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Notifications */
+.lead-extract-notification {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  background: white;
+  color: #333;
+  padding: 16px 20px;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 14px;
+  z-index: 1000000;
+  opacity: 0;
+  transform: translateY(-20px);
+  transition: all 0.3s ease;
+}
+
+.lead-extract-notification.show {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.lead-extract-notification.success {
+  border-left: 4px solid #10b981;
+}
+
+.lead-extract-notification.error {
+  border-left: 4px solid #ef4444;
+}
+
+.lead-extract-notification.info {
+  border-left: 4px solid #3b82f6;
+}

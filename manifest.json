@@ -1,17 +1,23 @@
 {
   "manifest_version": 3,
-  "name": "ReplyBot Assistant",
-  "description": "Quickly craft brand-safe replies powered by Chrome's built-in AI.",
-  "version": "0.1.0",
+  "name": "LinkedVA",
+  "description": "AI-powered LinkedIn assistant for Virtual Assistants. Generate on-brand replies and extract leads effortlessly using Chrome's built-in AI.",
+  "version": "2.0.0",
   "permissions": [
-    "storage"
+    "storage",
+    "activeTab",
+    "scripting",
+    "clipboardWrite"
   ],
   "host_permissions": [
     "<all_urls>"
   ],
+  "background": {
+    "service_worker": "background/service_worker.js"
+  },
   "action": {
-    "default_popup": "popup.html",
-    "default_title": "ReplyBot"
+    "default_popup": "popup/popup.html",
+    "default_title": "LinkedVA - LinkedIn VA Assistant"
   },
   "content_scripts": [
     {
@@ -19,12 +25,20 @@
         "<all_urls>"
       ],
       "js": [
-        "contentScript.js"
+        "content/replyBot.js",
+        "content/leadExtract.js"
       ],
       "css": [
-        "contentStyles.css"
+        "content/replyBot.css",
+        "content/leadExtract.css"
       ],
       "run_at": "document_idle"
     }
-  ]
+  ],
+  "icons": {
+    "16": "assets/icon16.png",
+    "32": "assets/icon32.png",
+    "48": "assets/icon48.png",
+    "128": "assets/icon128.png"
+  }
 }
