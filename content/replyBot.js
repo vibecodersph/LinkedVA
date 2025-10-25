@@ -4,34 +4,49 @@
   }
   window.replyBotInitialized = true;
 
-  // Only initialize on LinkedIn
+  // Only initialize on supported domains
   const hostname = window.location.hostname.toLowerCase();
-  if (!hostname.includes('linkedin.com')) {
+  const supportedSites = [
+    { name: 'linkedin', matches: (host) => host.includes('linkedin.com') },
+    { name: 'x', matches: (host) => host.includes('x.com') || host.includes('twitter.com') },
+  ];
+  const activeSiteEntry = supportedSites.find((site) => site.matches(hostname));
+  if (!activeSiteEntry) {
     return;
   }
+  const activeSite = activeSiteEntry.name;
 
   const BASE_SYSTEM_PROMPT = `You are LinkedVA, an on-device assistant that helps virtual assistants reply to conversations on LinkedIn.
 - Always respect the brand voice JSON shared via system prompts.
 - Default to clear, concise, human-sounding writing.
 - If you cannot complete a request, explain why.`;
 
-  const COMMENT_SELECTORS = [
-    '[data-testid*="comment"]',
-    '[data-test-id*="comment"]',
-    '[data-testid*="reply"]',
-    '[data-test-id*="reply"]',
-    '[role="comment"]',
+  const COMMENT_SELECTORS_BY_SITE = {
+    linkedin: [
+      '[data-testid*="comment"]',
+      '[data-test-id*="comment"]',
+      '[data-testid*="reply"]',
+      '[data-test-id*="reply"]',
+      '[role="comment"]',
     '[itemprop="comment"]',
     '[aria-label*="comment"]',
     '[aria-label*="Comment"]',
     'article',
     '[role="article"]',
-    '[data-testid="tweet"]',
-    '[data-testid*="post"]',
-    '[data-test-id*="thread"]',
-    '[aria-label*="Thread"]',
-    '[aria-label*="Post"]',
-  ];
+      '[data-testid="tweet"]',
+      '[data-testid*="post"]',
+      '[data-test-id*="thread"]',
+      '[aria-label*="Thread"]',
+      '[aria-label*="Post"]',
+    ],
+    x: [
+      'article[data-testid="tweet"]',
+      'div[data-testid="tweet"]',
+      '[data-testid="tweetText"]',
+      '[aria-label*="Replying to"]',
+    ],
+  };
+  const COMMENT_SELECTORS = COMMENT_SELECTORS_BY_SITE[activeSite] || COMMENT_SELECTORS_BY_SITE.linkedin;
   const COMMENT_SELECTOR = COMMENT_SELECTORS.join(',');
 
   const state = {
@@ -48,6 +63,8 @@
     hasDragged: false,
     dragOffset: { x: 0, y: 0 },
     customPosition: null,
+    site: activeSite,
+    interactingWithUI: false,
   };
 
   init();
@@ -137,6 +154,19 @@
         loadBrandProfile();
       }
     });
+
+    if (state.container) {
+      state.container.addEventListener('mousedown', () => {
+        state.interactingWithUI = true;
+      }, true);
+    }
+    document.addEventListener('mouseup', () => {
+      if (state.interactingWithUI) {
+        setTimeout(() => {
+          state.interactingWithUI = false;
+        }, 0);
+      }
+    }, true);
   }
 
   async function loadBrandProfile() {
@@ -187,8 +217,15 @@
   }
 
   function handleBlur(event) {
+    const relatedTarget = event.relatedTarget;
+    if (relatedTarget && relatedTarget.closest && relatedTarget.closest('[data-replybot-root]')) {
+      return;
+    }
     // Use a small delay to allow focusin on another field to fire first
     setTimeout(() => {
+      if (state.interactingWithUI) {
+        return;
+      }
       // Check if focus moved to another valid editable field
       const currentFocus = document.activeElement;
       
@@ -258,6 +295,9 @@
     }
     if (node.closest('[data-replybot-root]')) {
       return false;
+    }
+    if (state.site === 'x' && isXReplyEditor(node)) {
+      return true;
     }
 
     // Block Messenger chats early before other validation
@@ -681,6 +721,12 @@
     if (!start || !(start instanceof Element)) {
       return null;
     }
+    if (state.site === 'x') {
+      const tweetElement = findXContextTweetElement(start);
+      if (tweetElement) {
+        return tweetElement;
+      }
+    }
     const match = start.closest(COMMENT_SELECTOR);
     if (match) {
       return match;
@@ -795,6 +841,9 @@
   function getRecentReplies(root, max = 3) {
     if (!root) {
       return [];
+    }
+    if (state.site === 'x') {
+      return getXRecentReplies(root, max);
     }
     const texts = [];
     const candidates = Array.from(document.querySelectorAll(COMMENT_SELECTOR));
@@ -1019,6 +1068,12 @@
         url: location.href,
       };
     }
+    if (state.site === 'x') {
+      const xContext = collectXThreadContext();
+      if (xContext) {
+        return xContext;
+      }
+    }
     const contextNode = getCurrentContextRoot();
     const targetValue = (state.target instanceof HTMLTextAreaElement || state.target instanceof HTMLInputElement)
       ? state.target.value.trim()
@@ -1031,6 +1086,170 @@
       title: document.title,
       url: location.href,
     };
+  }
+
+  function collectXThreadContext() {
+    const editor = state.target;
+    if (!editor) {
+      return null;
+    }
+    let primaryElement = findXContextTweetElement(editor);
+    if (!primaryElement) {
+      primaryElement = document.querySelector('article[data-testid="tweet"], div[data-testid="tweet"]');
+    }
+    const cleanTitle = document.title.replace(' / X', '').trim() || document.title;
+    const primaryText = getXTweetText(primaryElement) || extractText(editor) || cleanTitle;
+    if (primaryElement) {
+      state.contextRoot = primaryElement;
+    }
+    return {
+      primary: primaryText || cleanTitle,
+      replies: getXRecentReplies(primaryElement, 3),
+      title: cleanTitle,
+      url: location.href,
+    };
+  }
+
+  function isXReplyEditor(node) {
+    if (state.site !== 'x') {
+      return false;
+    }
+    if (!(node instanceof HTMLElement) || !node.isContentEditable) {
+      return false;
+    }
+    const dataTestId = node.getAttribute('data-testid') || '';
+    if (!dataTestId.startsWith('tweetTextarea_')) {
+      return false;
+    }
+    return Boolean(findXReplyContainer(node));
+  }
+
+  function findXReplyContainer(editor) {
+    let depth = 0;
+    let current = editor?.parentElement || null;
+    while (current && depth < 8) {
+      if (
+        current.querySelector &&
+        current.querySelector(
+          '[data-testid="tweetMentions"], [data-testid="replying-to"], div[aria-label*="Replying to"]'
+        )
+      ) {
+        return current;
+      }
+      current = current.parentElement;
+      depth += 1;
+    }
+    return null;
+  }
+
+  function findXContextTweetElement(anchor) {
+    if (state.site !== 'x' || !anchor || !(anchor instanceof Element)) {
+      return null;
+    }
+    const anchorRect = typeof anchor.getBoundingClientRect === 'function' ? anchor.getBoundingClientRect() : null;
+    const tweets = Array.from(document.querySelectorAll('article[data-testid="tweet"], div[data-testid="tweet"]'));
+    let best = null;
+    let bestScore = Number.POSITIVE_INFINITY;
+    tweets.forEach((tweet) => {
+      if (!tweet || typeof tweet.getBoundingClientRect !== 'function') {
+        return;
+      }
+      const text = getXTweetText(tweet);
+      if (!text) {
+        return;
+      }
+      const rect = tweet.getBoundingClientRect();
+      let score = Number.POSITIVE_INFINITY;
+      if (tweet.contains(anchor)) {
+        score = -1;
+      } else if (anchorRect) {
+        if (rect.bottom <= anchorRect.top) {
+          score = anchorRect.top - rect.bottom;
+        } else if (rect.top >= anchorRect.bottom) {
+          score = rect.top - anchorRect.bottom + 1000;
+        } else {
+          score = 0;
+        }
+      }
+      if (score < bestScore) {
+        bestScore = score;
+        best = tweet;
+      }
+    });
+    if (best) {
+      return best;
+    }
+    let node = anchor;
+    for (let i = 0; i < 6 && node; i += 1) {
+      if (node.querySelector) {
+        const text = getXTweetText(node);
+        if (text) {
+          return node;
+        }
+      }
+      node = node.parentElement;
+    }
+    return null;
+  }
+
+  function getXTweetText(root) {
+    if (state.site !== 'x' || !root || typeof root.querySelector !== 'function') {
+      return '';
+    }
+    const textContainer = root.querySelector('[data-testid="tweetText"]');
+    if (textContainer) {
+      return textContainer.innerText.trim();
+    }
+    const fallback = (root.innerText || root.textContent || '').trim();
+    if (!fallback) {
+      return '';
+    }
+    return fallback.length > 600 ? `${fallback.slice(0, 600)}…` : fallback;
+  }
+
+  function getXRecentReplies(primaryElement, max = 3) {
+    if (state.site !== 'x') {
+      return [];
+    }
+    const results = [];
+    if (!primaryElement) {
+      return results;
+    }
+    const scope = primaryElement.parentElement || document;
+    const tweets = Array.from(scope.querySelectorAll('article[data-testid="tweet"], div[data-testid="tweet"]'));
+    let passedPrimary = false;
+    for (const tweet of tweets) {
+      if (tweet === primaryElement) {
+        passedPrimary = true;
+        continue;
+      }
+      if (!passedPrimary) {
+        continue;
+      }
+      const text = getXTweetText(tweet);
+      if (text && !results.includes(text)) {
+        results.push(text);
+      }
+      if (results.length >= max) {
+        break;
+      }
+    }
+    if (results.length >= max) {
+      return results.slice(0, max);
+    }
+    const additional = Array.from(document.querySelectorAll('article[data-testid="tweet"], div[data-testid="tweet"]'))
+      .filter((tweet) => tweet !== primaryElement)
+      .map((tweet) => getXTweetText(tweet))
+      .filter((text) => text && !results.includes(text));
+    for (const text of additional) {
+      if (!results.includes(text)) {
+        results.push(text);
+      }
+      if (results.length >= max) {
+        break;
+      }
+    }
+    return results.slice(0, max);
   }
 
   function escapeHtml(value) {
