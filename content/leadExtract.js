@@ -91,13 +91,17 @@ async function handleExtractClick() {
     // Get page content
     const pageContent = extractPageContent();
 
+    // Get current page URL for LinkedIn profile URL
+    const currentUrl = window.location.href;
+
     // Send to background script for AI processing
     let response;
     try {
       response = await chrome.runtime.sendMessage({
         action: 'extractLead',
         pageContent,
-        selectedText
+        selectedText,
+        pageUrl: currentUrl
       });
     } catch (err) {
       if (err.message && err.message.includes('Extension context invalidated')) {
@@ -152,31 +156,116 @@ async function handleExtractClick() {
   isExtracting = false;
 }
 
-// Extract relevant content from page
+// Extract relevant content from page - SMART extraction to avoid posts/activity
 function extractPageContent() {
-  // Get text content from main areas
-  const selectors = [
-    'main',
-    'article',
-    '[role="main"]',
-    '.profile',
-    '.profile-section',
-    '#profile',
-    'body'
+  console.log('='.repeat(80));
+  console.log('[Lead Extractor] SMART CONTENT EXTRACTION');
+  console.log('='.repeat(80));
+
+  let extractedSections = [];
+
+  // 1. HEADER SECTION - Name, Role, Company, Location
+  const headerSelectors = [
+    '.pv-text-details__left-panel',
+    '.ph5.pb5',
+    '.pv-top-card',
+    'section.artdeco-card:first-of-type',
+    '.profile-header'
   ];
 
-  let content = '';
-
-  for (const selector of selectors) {
-    const element = document.querySelector(selector);
-    if (element) {
-      content = element.innerText;
+  for (const selector of headerSelectors) {
+    const header = document.querySelector(selector);
+    if (header) {
+      const headerText = header.innerText;
+      extractedSections.push('=== HEADER ===');
+      extractedSections.push(headerText);
+      console.log('✅ Found header section:', selector, '(', headerText.length, 'chars)');
       break;
     }
   }
 
-  // Limit content size (first 3000 chars should be enough)
-  return content.substring(0, 3000);
+  // 2. ABOUT SECTION - Professional summary
+  const aboutSelectors = [
+    '#about',
+    '[id*="about"]',
+    'section:has(#about)',
+    'section.artdeco-card.pv-profile-card'
+  ];
+
+  for (const selector of aboutSelectors) {
+    try {
+      const aboutSection = document.querySelector(selector);
+      if (aboutSection && aboutSection.innerText.toLowerCase().includes('about')) {
+        const aboutText = aboutSection.innerText;
+        extractedSections.push('\n=== ABOUT ===');
+        extractedSections.push(aboutText);
+        console.log('✅ Found about section:', selector, '(', aboutText.length, 'chars)');
+        break;
+      }
+    } catch (e) {
+      // Skip invalid selectors
+    }
+  }
+
+  // 3. EXPERIENCE SECTION - Work history (but limit to avoid too much text)
+  const experienceSection = document.querySelector('#experience, [id*="experience"]');
+  if (experienceSection) {
+    const expText = experienceSection.innerText.substring(0, 1000); // Limit experience to 1000 chars
+    extractedSections.push('\n=== EXPERIENCE (limited) ===');
+    extractedSections.push(expText);
+    console.log('✅ Found experience section (limited to 1000 chars)');
+  }
+
+  // 4. EDUCATION SECTION
+  const educationSection = document.querySelector('#education, [id*="education"]');
+  if (educationSection) {
+    const eduText = educationSection.innerText.substring(0, 800); // Limit to 800 chars
+    extractedSections.push('\n=== EDUCATION ===');
+    extractedSections.push(eduText);
+    console.log('✅ Found education section');
+  }
+
+  // 5. SKILLS SECTION
+  const skillsSelectors = [
+    '#skills',
+    '[id*="skills"]',
+    'section:has(#skills)'
+  ];
+
+  for (const selector of skillsSelectors) {
+    try {
+      const skillsSection = document.querySelector(selector);
+      if (skillsSection && skillsSection.innerText.toLowerCase().includes('skill')) {
+        const skillsText = skillsSection.innerText.substring(0, 1000); // Limit skills
+        extractedSections.push('\n=== SKILLS ===');
+        extractedSections.push(skillsText);
+        console.log('✅ Found skills section:', selector);
+        break;
+      }
+    } catch (e) {
+      // Skip invalid selectors
+    }
+  }
+
+  // Combine all sections
+  const content = extractedSections.join('\n');
+
+  console.log('\n--- EXTRACTION SUMMARY ---');
+  console.log('Total sections found:', extractedSections.filter(s => s.startsWith('===')).length);
+  console.log('Total content length:', content.length, 'chars');
+
+  // Check what we got
+  console.log('\n--- SECTION DETECTION ---');
+  console.log('Contains "About":', content.includes('About'));
+  console.log('Contains "Skills":', content.includes('Skills') || content.includes('skill'));
+  console.log('Contains "Experience":', content.includes('Experience'));
+  console.log('Contains "Education":', content.includes('Education'));
+
+  console.log('\n--- EXTRACTED CONTENT ---');
+  console.log(content);
+  console.log('='.repeat(80));
+
+  return content;
 }
 
 // Reset button to initial state

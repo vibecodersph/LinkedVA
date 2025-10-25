@@ -76,6 +76,7 @@ function updateUI() {
         <div>
           <div class="lead-name">${escapeHtml(lead.name) || 'Unknown'}</div>
           <div class="lead-role">${escapeHtml(lead.role) || 'No role specified'}</div>
+          ${lead.location ? `<div class="lead-location" style="font-size: 12px; color: #666; margin-top: 2px;">📍 ${escapeHtml(lead.location)}</div>` : ''}
         </div>
         <div class="lead-actions">
           <button class="icon-btn copy-lead-btn" data-index="${index}" title="Copy lead info">
@@ -102,6 +103,46 @@ function updateUI() {
             <span class="info-value">${escapeHtml(lead.company)}</span>
           </div>
         ` : ''}
+        ${lead.industry ? `
+          <div class="info-row">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
+              <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
+            </svg>
+            <span class="info-label">Industry:</span>
+            <span class="info-value">${escapeHtml(lead.industry)}</span>
+          </div>
+        ` : ''}
+        ${lead.linkedinUrl ? `
+          <div class="info-row">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"></path>
+              <rect x="2" y="9" width="4" height="12"></rect>
+              <circle cx="4" cy="4" r="2"></circle>
+            </svg>
+            <span class="info-label">LinkedIn:</span>
+            <span class="info-value"><a href="${escapeHtml(lead.linkedinUrl)}" target="_blank" style="color: #0077b5; text-decoration: none;">View Profile</a></span>
+          </div>
+        ` : ''}
+        ${lead.education ? `
+          <div class="info-row">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M22 10v6M2 10l10-5 10 5-10 5z"></path>
+              <path d="M6 12v5c3 3 9 3 12 0v-5"></path>
+            </svg>
+            <span class="info-label">Education:</span>
+            <span class="info-value">${escapeHtml(lead.education)}</span>
+          </div>
+        ` : ''}
+        ${lead.skills && lead.skills.length > 0 ? `
+          <div class="info-row">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+            </svg>
+            <span class="info-label">Skills:</span>
+            <span class="info-value">${lead.skills.map(s => escapeHtml(s)).join(', ')}</span>
+          </div>
+        ` : ''}
         ${lead.email ? `
           <div class="info-row">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -110,6 +151,30 @@ function updateUI() {
             </svg>
             <span class="info-label">Email:</span>
             <span class="info-value">${escapeHtml(lead.email)}</span>
+          </div>
+        ` : ''}
+        ${lead.phone ? `
+          <div class="info-row">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
+            </svg>
+            <span class="info-label">Phone:</span>
+            <span class="info-value">${escapeHtml(lead.phone)}</span>
+          </div>
+        ` : ''}
+        ${lead.aboutSummary ? `
+          <div class="info-row" style="flex-direction: column; align-items: flex-start; margin-top: 8px; padding-top: 8px; border-top: 1px solid #eee;">
+            <div style="display: flex; align-items: center; margin-bottom: 4px;">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 14px; height: 14px; margin-right: 6px;">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                <polyline points="14 2 14 8 20 8"></polyline>
+                <line x1="16" y1="13" x2="8" y2="13"></line>
+                <line x1="16" y1="17" x2="8" y2="17"></line>
+                <polyline points="10 9 9 9 8 9"></polyline>
+              </svg>
+              <span class="info-label" style="font-weight: 600;">About:</span>
+            </div>
+            <span class="info-value" style="font-size: 12px; line-height: 1.4; color: #555; padding-left: 20px;">${escapeHtml(lead.aboutSummary)}</span>
           </div>
         ` : ''}
       </div>
@@ -144,20 +209,31 @@ function exportToCSV() {
   }
 
   try {
-    // Create CSV content
-    const headers = ['Name', 'Role', 'Company', 'Email', 'URL', 'Date'];
+    // Create CSV content with reliable fields only
+    const headers = [
+      'Name', 'Role', 'Company', 'Location', 'Industry',
+      'LinkedIn URL', 'Education', 'Skills', 'About Summary',
+      'Email', 'Phone', 'Source URL', 'Date'
+    ];
     const rows = leads.map(lead => [
       lead.name || '',
       lead.role || '',
       lead.company || '',
+      lead.location || '',
+      lead.industry || '',
+      lead.linkedinUrl || '',
+      (typeof lead.education === 'object' && lead.education !== null) ? JSON.stringify(lead.education) : (lead.education || ''),
+      (lead.skills && Array.isArray(lead.skills) && lead.skills.length > 0) ? lead.skills.join('; ') : '',
+      lead.aboutSummary || '',
       lead.email || '',
+      lead.phone || '',
       lead.url || '',
       new Date(lead.timestamp).toISOString()
     ]);
 
     const csvContent = [
       headers.join(','),
-      ...rows.map(row => row.map(cell => `"${cell.replace(/"/g, '""')}"`).join(','))
+      ...rows.map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))
     ].join('\n');
 
     // Create download
@@ -201,11 +277,22 @@ async function clearAllLeads() {
 // Copy single lead
 async function copyLead(index) {
   const lead = leads[index];
-  const text = `Name: ${lead.name || 'N/A'}
+
+  // Build lead text with available fields
+  let text = `Name: ${lead.name || 'N/A'}
 Role: ${lead.role || 'N/A'}
-Company: ${lead.company || 'N/A'}
-Email: ${lead.email || 'N/A'}
-URL: ${lead.url || 'N/A'}`;
+Company: ${lead.company || 'N/A'}`;
+
+  if (lead.location) text += `\nLocation: ${lead.location}`;
+  if (lead.industry) text += `\nIndustry: ${lead.industry}`;
+  if (lead.linkedinUrl) text += `\nLinkedIn: ${lead.linkedinUrl}`;
+  if (lead.education) text += `\nEducation: ${lead.education}`;
+  if (lead.skills && lead.skills.length > 0) text += `\nSkills: ${lead.skills.join(', ')}`;
+  if (lead.email) text += `\nEmail: ${lead.email}`;
+  if (lead.phone) text += `\nPhone: ${lead.phone}`;
+  if (lead.aboutSummary) text += `\n\nAbout:\n${lead.aboutSummary}`;
+
+  text += `\n\nSource: ${lead.url || 'N/A'}`;
 
   try {
     await navigator.clipboard.writeText(text);
