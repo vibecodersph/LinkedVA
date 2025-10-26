@@ -29,31 +29,51 @@ LinkedVA is a Chrome extension that helps Virtual Assistants work faster and sma
 
 ---
 
-## 📋 Prerequisites
+### Prerequisites
 
-### 1. Chrome Setup
-- **Required**: Chrome Canary or Dev channel (version 131+)
-- **Download**: [Chrome Canary](https://www.google.com/chrome/canary/)
+1. **Chrome Browser** (latest stable version)
+   - Make sure Chrome is fully updated
+   - Go to `chrome://settings/help` to check for updates
+   - Download: https://www.google.com/chrome/
 
-### 2. Enable Required Flags
-Navigate to `chrome://flags` and enable:
-- `#prompt-api-for-gemini-nano` → **Enabled**
-- `#optimization-guide-on-device-model` → **Enabled BypassPerfRequirement**
+2. **Enable Developer Mode**:
+   - Go to `chrome://extensions`
+   - Toggle **"Developer mode"** on (top right corner)
 
-**Important**: After enabling flags, restart Chrome completely.
+3. **Enable Optimization Guide Flag**:
+   - Go to `chrome://flags`
+   - Search for "optimization guide" or "Enables optimization guide on device"
+   - Set **"Enables optimization guide on device"** to `Enabled BypassPerfRequirement`
 
-### 3. Download Gemini Nano Model
-1. Go to `chrome://components`
-2. Find "Optimization Guide On Device Model"
-3. Click "Check for update" to download (~1.7GB)
-4. Wait for status to show "Up to date"
+4. **Enable All Gemini Nano Flags**:
+   - Still in `chrome://flags`
+   - Search for "gemini" or "nano" and enable ALL the following flags:
+   
+   | Flag | Setting |
+   |------|--------|
+   | **Prompt API for Gemini Nano** | `Enabled` |
+   | **Prompt API for Gemini Nano with Multimodal Input** | `Enabled` |
+   | **Summarization API for Gemini Nano** | `Enabled Multilingual` |
+   | **Writer API for Gemini Nano** | `Enabled Multilingual` |
+   | **Rewriter API for Gemini Nano** | `Enabled Multilingual` |
+   | **Proofreader API for Gemini Nano** | `Enabled` |
+   
+   - Click **"Relaunch"** to restart Chrome
 
-### 4. Verify Installation
-1. Open DevTools Console (F12) on any page
-2. Type: `await ai.languageModel.capabilities()`
-3. Should return: `{available: "readily"}`
+5. **Download the AI Model**:
+   - Go to `chrome://components`
+   - Find **"Optimization Guide On Device Model"**
+   - Click **"Check for update"**
+   - Wait for the model to download (may take 5-10 minutes)
+   - The version should show something like: `2025.8.8.1141`
 
-If you see `{available: "after-download"}`, wait a few minutes and check again.
+6. **Verify Model is Ready**:
+   - Go to `chrome://on-device-internals/`
+   - Click **"Model Status"** tab
+   - Scroll down and wait until these show **"Ready"** status:
+     - `OPTIMIZATION_TARGET_LANGUAGE_DETECTION`
+     - `OPTIMIZATION_TARGET_TEXT_SAFETY`
+   - ⚠️ **Important**: Do not proceed until both show "Ready"
 
 ---
 
