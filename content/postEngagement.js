@@ -314,35 +314,52 @@ async function expandAllComments() {
 
   const maxIterations = 20; // Prevent infinite loops
   let iteration = 0;
+  let totalClicked = 0;
 
   while (iteration < maxIterations) {
-    // Find "Show more comments" or "Load more" buttons
-    const loadMoreButtons = Array.from(document.querySelectorAll('button')).filter(btn => {
+    // Find "Show more comments" or "Load more" buttons - try multiple text patterns
+    const loadMoreButtons = Array.from(document.querySelectorAll('button, [role="button"]')).filter(btn => {
       const text = btn.textContent.toLowerCase();
+      const ariaLabel = (btn.getAttribute('aria-label') || '').toLowerCase();
+
       return text.includes('show more') ||
              text.includes('load more') ||
              text.includes('see more') ||
-             text.includes('previous comment');
+             text.includes('view more') ||
+             text.includes('previous comment') ||
+             text.includes('show all comments') ||
+             text.includes('load previous') ||
+             ariaLabel.includes('show more') ||
+             ariaLabel.includes('load more');
     });
 
     if (loadMoreButtons.length === 0) {
-      console.log('[PostEngagement] No more comments to load');
+      console.log('[PostEngagement] No more comments to load (clicked ' + totalClicked + ' buttons total)');
       break;
     }
 
-    console.log(`[PostEngagement] Found ${loadMoreButtons.length} load more buttons, clicking...`);
+    console.log(`[PostEngagement] Iteration ${iteration + 1}: Found ${loadMoreButtons.length} load more buttons, clicking...`);
 
     // Click all load more buttons
     for (const button of loadMoreButtons) {
-      button.click();
-      await sleep(500); // Wait for content to load
+      try {
+        button.click();
+        totalClicked++;
+        await sleep(500); // Wait for content to load
+      } catch (error) {
+        console.log('[PostEngagement] Could not click button:', error.message);
+      }
     }
 
     iteration++;
-    await sleep(1000); // Wait for new content to render
+    await sleep(1500); // Wait longer for new content to render
   }
 
-  console.log('[PostEngagement] Finished expanding comments');
+  if (iteration >= maxIterations) {
+    console.warn('[PostEngagement] Reached max iterations, stopping comment expansion');
+  }
+
+  console.log('[PostEngagement] Finished expanding comments (clicked ' + totalClicked + ' load more buttons)');
 }
 
 // Extract all commenters
@@ -350,25 +367,66 @@ async function extractCommenters() {
   const commenters = [];
   const seenProfiles = new Set();
 
+  console.log('[PostEngagement] Starting commenter extraction...');
+
   // Multiple selectors for LinkedIn's changing DOM structure
   const commentSelectors = [
     '.comments-comment-item',
+    'article.comments-comment-item',
     '[data-test-id="comment"]',
     '.comment-item',
     '[data-view-name="comment"]',
-    '.comments-comment-item-v2'
+    '.comments-comment-item-v2',
+    '.comments-comment-item-content-wrapper',
+    'div[class*="comments-comment"]',
+    'li.comments-comment-item'
   ];
 
   let commentElements = [];
+
+  // Try each selector until we find comments
   for (const selector of commentSelectors) {
     commentElements = document.querySelectorAll(selector);
     if (commentElements.length > 0) {
       console.log(`[PostEngagement] Found ${commentElements.length} comments using selector: ${selector}`);
       break;
+    } else {
+      console.log(`[PostEngagement] No comments found with selector: ${selector}`);
+    }
+  }
+
+  // If still no comments, try broader search
+  if (commentElements.length === 0) {
+    console.log('[PostEngagement] Trying broader comment search...');
+
+    // Look for comment sections
+    const commentSection = document.querySelector('.comments-comments-list') ||
+                          document.querySelector('[data-test-id="comments-list"]') ||
+                          document.querySelector('.social-details-social-activity');
+
+    if (commentSection) {
+      console.log('[PostEngagement] Found comment section, searching within...');
+
+      // Try to find comment items within the section
+      commentElements = commentSection.querySelectorAll('[class*="comment-item"]') ||
+                       commentSection.querySelectorAll('article') ||
+                       commentSection.querySelectorAll('li');
+
+      console.log(`[PostEngagement] Found ${commentElements.length} potential comment elements in section`);
+    } else {
+      console.warn('[PostEngagement] Could not find comment section on page');
     }
   }
 
   console.log(`[PostEngagement] Processing ${commentElements.length} comment elements...`);
+
+  if (commentElements.length === 0) {
+    console.warn('[PostEngagement] No comment elements found! This might mean:');
+    console.warn('  1. No comments exist on this post yet');
+    console.warn('  2. Comments section not loaded/visible');
+    console.warn('  3. LinkedIn DOM structure changed and selectors need updating');
+    return commenters;
+  }
 
   commentElements.forEach((commentEl, index) => {
     try {
@@ -379,25 +437,40 @@ async function extractCommenters() {
         if (!seenProfiles.has(commenterData.profileUrl)) {
           seenProfiles.add(commenterData.profileUrl);
           commenters.push(commenterData);
-          console.log(`[PostEngagement] Extracted commenter ${index + 1}:`, commenterData.name);
+          console.log(`[PostEngagement] ✓ Extracted commenter ${index + 1}/${commentElements.length}:`, commenterData.name);
+        } else {
+          console.log(`[PostEngagement] ⊘ Skipped duplicate commenter:`, commenterData.name);
         }
+      } else {
+        console.log(`[PostEngagement] ✗ Could not extract data from comment element ${index + 1}`);
       }
     } catch (error) {
       console.error(`[PostEngagement] Error extracting commenter ${index}:`, error);
     }
   });
 
+  console.log(`[PostEngagement] Commenter extraction complete: ${commenters.length} unique commenters found`);
+
   return commenters;
 }
 
 // Extract data from a single comment element
 function extractCommenterData(commentEl) {
-  // Find profile link
-  const profileLink = commentEl.querySelector('a[href*="/in/"]') ||
-                     commentEl.querySelector('a[href*="linkedin.com/in/"]');
+  // Find profile link - try multiple approaches
+  let profileLink = commentEl.querySelector('a[href*="/in/"]');
 
   if (!profileLink) {
-    console.log('[PostEngagement] No profile link found in comment');
+    profileLink = commentEl.querySelector('a[href*="linkedin.com/in/"]');
+  }
+
+  if (!profileLink) {
+    // Try finding all links and filter for profile links
+    const allLinks = commentEl.querySelectorAll('a');
+    profileLink = Array.from(allLinks).find(a => a.href && a.href.includes('/in/'));
+  }
+
+  if (!profileLink) {
+    console.log('[PostEngagement] No profile link found in comment element');
     return null;
   }
 
@@ -405,15 +478,20 @@ function extractCommenterData(commentEl) {
   const profileUrl = extractCleanLinkedInUrl(profileLink);
 
   if (!profileUrl) {
-    console.log('[PostEngagement] Could not extract clean profile URL');
+    console.log('[PostEngagement] Could not extract profile URL from comment');
     return null;
   }
 
-  // Extract name (clean it from accessibility text)
+  // Extract name (clean it from accessibility text) - try multiple selectors
   const nameEl = commentEl.querySelector('.comments-post-meta__name-text') ||
                 commentEl.querySelector('.feed-shared-actor__name') ||
                 commentEl.querySelector('[data-test-id="comment-author-name"]') ||
+                commentEl.querySelector('.comments-post-meta__profile-link') ||
+                commentEl.querySelector('span.hoverable-link-text') ||
+                commentEl.querySelector('.comments-post-meta__name') ||
+                profileLink.querySelector('span[aria-hidden="true"]') ||
                 profileLink;
+
   const rawName = nameEl ? nameEl.textContent.trim() : 'Unknown';
   const name = cleanLinkedInName(rawName);
 
