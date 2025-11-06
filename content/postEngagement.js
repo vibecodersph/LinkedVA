@@ -401,14 +401,21 @@ function extractCommenterData(commentEl) {
     return null;
   }
 
-  const profileUrl = profileLink.href;
+  // Extract clean profile URL
+  const profileUrl = extractCleanLinkedInUrl(profileLink);
 
-  // Extract name
+  if (!profileUrl) {
+    console.log('[PostEngagement] Could not extract clean profile URL');
+    return null;
+  }
+
+  // Extract name (clean it from accessibility text)
   const nameEl = commentEl.querySelector('.comments-post-meta__name-text') ||
                 commentEl.querySelector('.feed-shared-actor__name') ||
                 commentEl.querySelector('[data-test-id="comment-author-name"]') ||
                 profileLink;
-  const name = nameEl ? nameEl.textContent.trim() : 'Unknown';
+  const rawName = nameEl ? nameEl.textContent.trim() : 'Unknown';
+  const name = cleanLinkedInName(rawName);
 
   // Extract title/headline
   const titleEl = commentEl.querySelector('.comments-post-meta__headline') ||
@@ -578,14 +585,21 @@ function extractLikerData(likerEl) {
     return null;
   }
 
-  const profileUrl = profileLink.href;
+  // Extract clean profile URL
+  const profileUrl = extractCleanLinkedInUrl(profileLink);
 
-  // Extract name
+  if (!profileUrl) {
+    console.log('[PostEngagement] Could not extract clean profile URL from liker');
+    return null;
+  }
+
+  // Extract name (clean it from accessibility text)
   const nameEl = likerEl.querySelector('.artdeco-entity-lockup__title') ||
                 likerEl.querySelector('[data-test-id="member-name"]') ||
                 likerEl.querySelector('span[dir="ltr"]') ||
                 profileLink;
-  const name = nameEl ? nameEl.textContent.trim() : 'Unknown';
+  const rawName = nameEl ? nameEl.textContent.trim() : 'Unknown';
+  const name = cleanLinkedInName(rawName);
 
   // Extract title/headline
   const titleEl = likerEl.querySelector('.artdeco-entity-lockup__subtitle') ||
@@ -598,6 +612,144 @@ function extractLikerData(likerEl) {
     profileUrl,
     engagementType: 'like'
   };
+}
+
+// Helper function: Clean LinkedIn name from accessibility text
+function cleanLinkedInName(rawName) {
+  if (!rawName) return 'Unknown';
+
+  let cleanName = rawName;
+
+  // Remove common LinkedIn accessibility patterns
+  // Examples: "View Paul Roberts' profile", "View profile for John Doe"
+  cleanName = cleanName.replace(/^View\s+/i, '');
+  cleanName = cleanName.replace(/View\s+.*?\s+profile$/i, '');
+  cleanName = cleanName.replace(/\s*'s?\s+profile$/i, '');
+  cleanName = cleanName.replace(/View\s+profile\s+for\s+/i, '');
+  cleanName = cleanName.replace(/\s+profile$/i, '');
+
+  // Remove degree symbols and extra info that might be appended
+  cleanName = cleanName.split('•')[0].trim();
+  cleanName = cleanName.split('·')[0].trim();
+
+  // Clean up extra whitespace
+  cleanName = cleanName.replace(/\s+/g, ' ').trim();
+
+  return cleanName || 'Unknown';
+}
+
+// Helper function: Extract clean LinkedIn vanity URL
+function extractCleanLinkedInUrl(profileLink) {
+  if (!profileLink || !profileLink.href) return null;
+
+  const href = profileLink.href;
+
+  try {
+    const url = new URL(href);
+    const pathname = url.pathname;
+
+    // Extract the username from /in/username/ pattern
+    const match = pathname.match(/\/in\/([^\/]+)/);
+
+    if (!match) return null;
+
+    const username = match[1];
+
+    // Check if it's a clean vanity URL (not encrypted)
+    // Encrypted URLs start with ACoAAA
+    if (username.startsWith('ACoAAA') || username.startsWith('ACoAA')) {
+      console.log('[PostEngagement] Detected encrypted URL, attempting to find vanity URL...');
+
+      // Try to find the vanity URL in other attributes
+      // Check if there's a data-tracking-control-name or similar
+      const vanityUrl = findVanityUrlInElement(profileLink);
+      if (vanityUrl) {
+        return vanityUrl;
+      }
+
+      // If we still have an encrypted URL, we might need to accept it
+      // but log a warning
+      console.warn('[PostEngagement] Could not find vanity URL, using encrypted URL as fallback:', href);
+      // Return null to skip encrypted URLs
+      return null;
+    }
+
+    // Return the clean vanity URL
+    return `https://www.linkedin.com/in/${username}/`;
+  } catch (error) {
+    console.error('[PostEngagement] Error parsing LinkedIn URL:', error);
+    return null;
+  }
+}
+
+// Helper function: Try to find vanity URL in element or its parents
+function findVanityUrlInElement(element) {
+  // Check the element's aria-label which sometimes contains the vanity username
+  const ariaLabel = element.getAttribute('aria-label');
+  if (ariaLabel) {
+    // Sometimes the aria-label contains the vanity URL
+    const match = ariaLabel.match(/linkedin\.com\/in\/([a-zA-Z0-9-]+)/);
+    if (match && !match[1].startsWith('ACoAAA')) {
+      return `https://www.linkedin.com/in/${match[1]}/`;
+    }
+  }
+
+  // Check data attributes for public identifier
+  const dataAttributes = element.getAttributeNames().filter(name => name.startsWith('data-'));
+  for (const attr of dataAttributes) {
+    const value = element.getAttribute(attr);
+    if (value && value.includes('/in/')) {
+      const match = value.match(/\/in\/([a-zA-Z0-9-]+)/);
+      if (match && !match[1].startsWith('ACoAAA')) {
+        return `https://www.linkedin.com/in/${match[1]}/`;
+      }
+    }
+  }
+
+  // Try to extract from data-entity-urn or similar LinkedIn URN attributes
+  const urn = element.getAttribute('data-entity-urn') ||
+              element.getAttribute('data-urn') ||
+              element.getAttribute('data-member-urn');
+
+  if (urn) {
+    // LinkedIn URNs sometimes contain the public identifier
+    // Format: urn:li:member:123456 or urn:li:fs_miniProfile:publicIdentifier
+    const publicIdMatch = urn.match(/publicIdentifier[:\s]+([a-zA-Z0-9-]+)/);
+    if (publicIdMatch) {
+      return `https://www.linkedin.com/in/${publicIdMatch[1]}/`;
+    }
+  }
+
+  // Check parent elements for additional context
+  let parent = element.parentElement;
+  let depth = 0;
+  while (parent && depth < 3) {
+    // Check parent's data attributes too
+    if (parent.hasAttribute('data-entity-urn')) {
+      const parentUrn = parent.getAttribute('data-entity-urn');
+      if (parentUrn && parentUrn.includes('fs_miniProfile')) {
+        const publicIdMatch = parentUrn.match(/publicIdentifier[:\s]+([a-zA-Z0-9-]+)/);
+        if (publicIdMatch) {
+          return `https://www.linkedin.com/in/${publicIdMatch[1]}/`;
+        }
+      }
+    }
+
+    // Check for links in parent that might have clean URLs
+    const parentLinks = parent.querySelectorAll('a[href*="/in/"]');
+    for (const link of parentLinks) {
+      const linkHref = link.href;
+      const match = linkHref.match(/\/in\/([a-zA-Z0-9-]+)/);
+      if (match && !match[1].startsWith('ACoAAA') && match[1].length < 30) {
+        return `https://www.linkedin.com/in/${match[1]}/`;
+      }
+    }
+
+    parent = parent.parentElement;
+    depth++;
+  }
+
+  return null;
 }
 
 // Show notification to user
