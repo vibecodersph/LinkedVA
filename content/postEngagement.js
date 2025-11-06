@@ -482,27 +482,85 @@ function extractCommenterData(commentEl) {
     return null;
   }
 
+  // DEBUG: Log the comment element structure
+  console.log('[PostEngagement] Comment element classes:', commentEl.className);
+  console.log('[PostEngagement] Comment element HTML preview:', commentEl.innerHTML.substring(0, 200));
+
   // Extract name (clean it from accessibility text) - try multiple selectors
-  const nameEl = commentEl.querySelector('.comments-post-meta__name-text') ||
-                commentEl.querySelector('.feed-shared-actor__name') ||
-                commentEl.querySelector('[data-test-id="comment-author-name"]') ||
-                commentEl.querySelector('.comments-post-meta__profile-link') ||
-                commentEl.querySelector('span.hoverable-link-text') ||
-                commentEl.querySelector('.comments-post-meta__name') ||
-                profileLink.querySelector('span[aria-hidden="true"]') ||
-                profileLink;
+  let nameEl = commentEl.querySelector('.comments-post-meta__name-text');
+  let nameSelector = '.comments-post-meta__name-text';
+
+  if (!nameEl) {
+    nameEl = commentEl.querySelector('.feed-shared-actor__name');
+    nameSelector = '.feed-shared-actor__name';
+  }
+  if (!nameEl) {
+    nameEl = commentEl.querySelector('[data-test-id="comment-author-name"]');
+    nameSelector = '[data-test-id="comment-author-name"]';
+  }
+  if (!nameEl) {
+    nameEl = commentEl.querySelector('.comments-post-meta__profile-link');
+    nameSelector = '.comments-post-meta__profile-link';
+  }
+  if (!nameEl) {
+    nameEl = commentEl.querySelector('span.hoverable-link-text');
+    nameSelector = 'span.hoverable-link-text';
+  }
+  if (!nameEl) {
+    nameEl = commentEl.querySelector('.comments-post-meta__name');
+    nameSelector = '.comments-post-meta__name';
+  }
+  if (!nameEl) {
+    nameEl = profileLink.querySelector('span[aria-hidden="true"]');
+    nameSelector = 'span[aria-hidden="true"] in link';
+  }
+  if (!nameEl) {
+    // Try getting direct text from profile link
+    nameEl = profileLink.querySelector('span');
+    nameSelector = 'first span in link';
+  }
+  if (!nameEl) {
+    nameEl = profileLink;
+    nameSelector = 'profile link itself';
+  }
 
   const rawName = nameEl ? nameEl.textContent.trim() : 'Unknown';
+  console.log('[PostEngagement] Name extraction:', { selector: nameSelector, rawName, element: nameEl ? 'found' : 'NOT FOUND' });
+
   const name = cleanLinkedInName(rawName);
+  console.log('[PostEngagement] Name after cleaning:', name);
 
   // Extract title/headline - try multiple selectors
-  const titleEl = commentEl.querySelector('.comments-post-meta__headline') ||
-                 commentEl.querySelector('.feed-shared-actor__description') ||
-                 commentEl.querySelector('[data-test-id="comment-author-headline"]') ||
-                 commentEl.querySelector('.comments-post-meta__description') ||
-                 commentEl.querySelector('.t-12.t-black--light.t-normal');
+  let titleEl = commentEl.querySelector('.comments-post-meta__headline');
+  let titleSelector = '.comments-post-meta__headline';
+
+  if (!titleEl) {
+    titleEl = commentEl.querySelector('.feed-shared-actor__description');
+    titleSelector = '.feed-shared-actor__description';
+  }
+  if (!titleEl) {
+    titleEl = commentEl.querySelector('[data-test-id="comment-author-headline"]');
+    titleSelector = '[data-test-id="comment-author-headline"]';
+  }
+  if (!titleEl) {
+    titleEl = commentEl.querySelector('.comments-post-meta__description');
+    titleSelector = '.comments-post-meta__description';
+  }
+  if (!titleEl) {
+    titleEl = commentEl.querySelector('.t-12.t-black--light.t-normal');
+    titleSelector = '.t-12.t-black--light.t-normal';
+  }
+  if (!titleEl) {
+    // Try finding any text that looks like a headline under the profile link
+    const metaSection = commentEl.querySelector('.comments-post-meta');
+    if (metaSection) {
+      titleEl = metaSection.querySelector('span.t-12');
+      titleSelector = 'span.t-12 in meta section';
+    }
+  }
 
   const title = titleEl ? titleEl.textContent.trim() : '';
+  console.log('[PostEngagement] Title extraction:', { selector: titleEl ? titleSelector : 'NOT FOUND', title: title || '(empty)' });
 
   // Extract comment text
   const commentTextEl = commentEl.querySelector('.comments-comment-item__main-content') ||
@@ -516,7 +574,12 @@ function extractCommenterData(commentEl) {
                 commentEl.querySelector('.comments-comment-meta__timestamp');
   const timestamp = timeEl ? timeEl.getAttribute('datetime') || timeEl.textContent.trim() : '';
 
-  console.log('[PostEngagement] Extracted commenter:', { name, title: title || '(no title)', hasComment: !!comment });
+  console.log('[PostEngagement] Final extracted data:', {
+    name,
+    title: title || '(no title)',
+    hasComment: !!comment,
+    profileUrl: profileUrl.substring(0, 50) + '...'
+  });
 
   return {
     name,
