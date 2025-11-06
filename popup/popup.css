@@ -704,3 +704,274 @@ button:focus-visible,
     transition-duration: 0.01ms !important;
   }
 }
+
+/* ============================================
+   Engagement Analytics Styles
+   ============================================ */
+
+/* Engagement Cards */
+.engagement-card {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-lg);
+  margin-bottom: var(--spacing-lg);
+  transition: all var(--transition-normal);
+}
+
+.engagement-card:hover {
+  border-color: var(--primary-color);
+  box-shadow: var(--shadow-medium);
+}
+
+.engagement-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: var(--spacing-md);
+}
+
+.engagement-title-section {
+  flex: 1;
+}
+
+.engagement-post-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: var(--spacing-xs);
+  line-height: 1.4;
+}
+
+.engagement-post-author {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.engagement-actions {
+  display: flex;
+  gap: var(--spacing-sm);
+}
+
+/* Engagement Stats */
+.engagement-stats {
+  display: flex;
+  gap: var(--spacing-lg);
+  margin-bottom: var(--spacing-md);
+  padding: var(--spacing-md);
+  background: var(--bg-tertiary);
+  border-radius: var(--radius-sm);
+}
+
+.engagement-stats .stat-item {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.engagement-stats .stat-item svg {
+  width: 16px;
+  height: 16px;
+  stroke: var(--primary-color);
+}
+
+/* Engagement Meta */
+.engagement-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--spacing-md);
+  padding-top: var(--spacing-md);
+  border-top: 1px solid var(--border-color);
+}
+
+.engagement-link {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  font-size: 12px;
+  color: var(--primary-color);
+  text-decoration: none;
+  transition: color var(--transition-fast);
+}
+
+.engagement-link:hover {
+  color: var(--primary-hover);
+}
+
+.engagement-link svg {
+  width: 14px;
+  height: 14px;
+}
+
+.engagement-date {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+/* Toggle Details Button */
+.toggle-details-btn {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-sm) var(--spacing-md);
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  font-size: 13px;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.toggle-details-btn:hover {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  border-color: var(--primary-color);
+}
+
+.toggle-details-btn svg {
+  transition: transform var(--transition-normal);
+}
+
+/* Engagement Details */
+.engagement-details {
+  margin-top: var(--spacing-md);
+  padding-top: var(--spacing-md);
+  border-top: 1px solid var(--border-color);
+}
+
+.engagement-section {
+  margin-bottom: var(--spacing-lg);
+}
+
+.engagement-section:last-child {
+  margin-bottom: 0;
+}
+
+.section-title {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: var(--spacing-md);
+}
+
+.section-title svg {
+  width: 16px;
+  height: 16px;
+  stroke: var(--primary-color);
+}
+
+/* Profiles List */
+.profiles-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.profile-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: var(--spacing-md);
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  transition: all var(--transition-fast);
+}
+
+.profile-item:hover {
+  border-color: var(--primary-color);
+  background: var(--bg-secondary);
+}
+
+.profile-item.compact {
+  padding: var(--spacing-sm) var(--spacing-md);
+}
+
+.profile-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.profile-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+  text-decoration: none;
+  display: block;
+  margin-bottom: 2px;
+  transition: color var(--transition-fast);
+}
+
+.profile-name:hover {
+  color: var(--primary-color);
+}
+
+.profile-title {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-bottom: var(--spacing-xs);
+  line-height: 1.3;
+}
+
+.profile-comment {
+  font-size: 12px;
+  color: var(--text-secondary);
+  font-style: italic;
+  line-height: 1.4;
+  margin-top: var(--spacing-xs);
+  padding-left: var(--spacing-md);
+  border-left: 2px solid var(--border-color);
+}
+
+.profile-link-btn {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  background: var(--bg-dark);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  text-decoration: none;
+  transition: all var(--transition-fast);
+}
+
+.profile-link-btn:hover {
+  background: var(--primary-color);
+  border-color: var(--primary-color);
+  color: white;
+}
+
+.profile-link-btn svg {
+  width: 14px;
+  height: 14px;
+}
+
+.profiles-overflow {
+  text-align: center;
+  padding: var(--spacing-md);
+  font-size: 12px;
+  color: var(--text-secondary);
+  background: var(--bg-tertiary);
+  border-radius: var(--radius-sm);
+}
+
+/* Engagements List Container */
+.engagements-list {
+  padding: var(--spacing-md) 0;
+  max-height: 500px;
+  overflow-y: auto;
+}

@@ -1,0 +1,143 @@
+/* Post Engagement Extractor Button Styles */
+
+.linkedva-engagement-btn {
+  position: fixed;
+  bottom: 80px;
+  right: 20px;
+  z-index: 999999;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  border-radius: 50px;
+  padding: 12px 20px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: grab;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4),
+              0 2px 4px rgba(0, 0, 0, 0.2);
+  transition: all 0.3s ease;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  user-select: none;
+}
+
+.linkedva-engagement-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.5),
+              0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+.linkedva-engagement-btn:active {
+  transform: translateY(0);
+}
+
+.linkedva-engagement-btn svg {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+}
+
+.linkedva-engagement-btn span {
+  white-space: nowrap;
+}
+
+/* Loading state */
+.linkedva-engagement-btn.loading {
+  background: linear-gradient(135deg, #4a5ed8 0%, #5a3b8a 100%);
+  cursor: wait;
+  pointer-events: none;
+}
+
+.linkedva-engagement-btn.loading svg {
+  animation: spin 1s linear infinite;
+}
+
+/* Success state */
+.linkedva-engagement-btn.success {
+  background: linear-gradient(135deg, #238636 0%, #1a6b2a 100%);
+  cursor: default;
+}
+
+/* Error state */
+.linkedva-engagement-btn.error {
+  background: linear-gradient(135deg, #f85149 0%, #d42e22 100%);
+  cursor: default;
+}
+
+/* Notification styles */
+.linkedva-notification {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 1000000;
+  background: white;
+  color: #0d1117;
+  padding: 16px 24px;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15),
+              0 2px 4px rgba(0, 0, 0, 0.1);
+  font-size: 14px;
+  font-weight: 500;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  opacity: 0;
+  transform: translateY(-20px);
+  transition: all 0.3s ease;
+  max-width: 400px;
+  word-wrap: break-word;
+}
+
+.linkedva-notification.show {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.linkedva-notification-success {
+  border-left: 4px solid #238636;
+}
+
+.linkedva-notification-error {
+  border-left: 4px solid #f85149;
+}
+
+.linkedva-notification-info {
+  border-left: 4px solid #667eea;
+}
+
+/* Spin animation for loading state */
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .linkedva-engagement-btn {
+    bottom: 70px;
+    right: 10px;
+    padding: 10px 16px;
+    font-size: 13px;
+  }
+
+  .linkedva-engagement-btn svg {
+    width: 18px;
+    height: 18px;
+  }
+
+  .linkedva-notification {
+    right: 10px;
+    left: 10px;
+    max-width: none;
+  }
+}
+
+/* Ensure button is above LinkedIn's UI elements */
+.linkedva-engagement-btn,
+.linkedva-notification {
+  isolation: isolate;
+}

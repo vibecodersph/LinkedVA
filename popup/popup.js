@@ -1,13 +1,15 @@
 // popup/popup.js
-// Main tab navigation controller for ReplyBot + Lead Extractor
+// Main tab navigation controller for ReplyBot + Lead Extractor + Engagement Analytics
 
 import { initBrandSetup } from './tabs/brandSetup.js';
 import { initLeadManagement } from './tabs/leadManagement.js';
+import { initEngagementAnalysis } from './tabs/engagementAnalysis.js';
 
 let currentTab = 'brand';
 let tabModules = {
   brand: null,
-  leads: null
+  leads: null,
+  engagement: null
 };
 
 // Initialize popup
@@ -62,15 +64,21 @@ async function loadTab(tabName) {
     if (tabName === 'leads' && typeof tabModules[tabName].refreshLeads === 'function') {
       await tabModules[tabName].refreshLeads();
     }
+    if (tabName === 'engagement' && typeof tabModules[tabName].refreshEngagements === 'function') {
+      await tabModules[tabName].refreshEngagements();
+    }
     return;
   }
-  
+
   switch (tabName) {
     case 'brand':
       tabModules.brand = await initBrandSetup();
       break;
     case 'leads':
       tabModules.leads = await initLeadManagement();
+      break;
+    case 'engagement':
+      tabModules.engagement = await initEngagementAnalysis();
       break;
     default:
       console.warn(`Unknown tab: ${tabName}`);

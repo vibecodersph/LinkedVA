@@ -214,6 +214,84 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     // No response needed, just acknowledge
     return false;
   }
+
+  // Post Engagement: Save engagement data
+  if (message.action === 'savePostEngagement') {
+    chrome.storage.local.get(['engagements'], (result) => {
+      const engagements = result.engagements || [];
+
+      // Check if engagement already exists (by postId)
+      const existingIndex = engagements.findIndex(
+        e => e.postId === message.engagement.postId
+      );
+
+      if (existingIndex !== -1) {
+        // Update existing engagement
+        engagements[existingIndex] = {
+          ...message.engagement,
+          timestamp: Date.now(),
+          url: message.postUrl
+        };
+      } else {
+        // Add new engagement at the beginning
+        engagements.unshift({
+          ...message.engagement,
+          timestamp: Date.now(),
+          url: message.postUrl
+        });
+      }
+
+      chrome.storage.local.set({ engagements }, () => {
+        console.log('[PostEngagement] Saved engagement data:', message.engagement.postId);
+        sendResponse({
+          success: true,
+          totalEngagements: engagements.length
+        });
+      });
+    });
+
+    return true; // Async response
+  }
+
+  // Post Engagement: Get stored engagements
+  if (message.action === 'getStoredEngagements') {
+    chrome.storage.local.get(['engagements'], (result) => {
+      sendResponse({
+        success: true,
+        engagements: result.engagements || []
+      });
+    });
+
+    return true; // Async response
+  }
+
+  // Post Engagement: Clear all engagements
+  if (message.action === 'clearEngagements') {
+    chrome.storage.local.set({ engagements: [] }, () => {
+      console.log('[PostEngagement] Cleared all engagements');
+      sendResponse({ success: true });
+    });
+
+    return true; // Async response
+  }
+
+  // Post Engagement: Delete single engagement
+  if (message.action === 'deleteEngagement') {
+    chrome.storage.local.get(['engagements'], (result) => {
+      let engagements = result.engagements || [];
+      engagements = engagements.filter(e => e.postId !== message.postId);
+
+      chrome.storage.local.set({ engagements }, () => {
+        console.log('[PostEngagement] Deleted engagement:', message.postId);
+        sendResponse({
+          success: true,
+          totalEngagements: engagements.length
+        });
+      });
+    });
+
+    return true; // Async response
+  }
 });
 
-console.log('[ReplyBot + Lead Extractor] Service worker activated');
+console.log('[ReplyBot + Lead Extractor + Post Engagement] Service worker activated');
