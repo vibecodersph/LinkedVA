@@ -417,22 +417,28 @@ function extractCommenterData(commentEl) {
   const rawName = nameEl ? nameEl.textContent.trim() : 'Unknown';
   const name = cleanLinkedInName(rawName);
 
-  // Extract title/headline
+  // Extract title/headline - try multiple selectors
   const titleEl = commentEl.querySelector('.comments-post-meta__headline') ||
                  commentEl.querySelector('.feed-shared-actor__description') ||
-                 commentEl.querySelector('[data-test-id="comment-author-headline"]');
+                 commentEl.querySelector('[data-test-id="comment-author-headline"]') ||
+                 commentEl.querySelector('.comments-post-meta__description') ||
+                 commentEl.querySelector('.t-12.t-black--light.t-normal');
+
   const title = titleEl ? titleEl.textContent.trim() : '';
 
   // Extract comment text
   const commentTextEl = commentEl.querySelector('.comments-comment-item__main-content') ||
                        commentEl.querySelector('.comments-comment-item-content-body') ||
-                       commentEl.querySelector('[data-test-id="comment-text"]');
+                       commentEl.querySelector('[data-test-id="comment-text"]') ||
+                       commentEl.querySelector('.comments-comment-item__inline-show-more-text');
   const comment = commentTextEl ? commentTextEl.textContent.trim() : '';
 
   // Extract timestamp
   const timeEl = commentEl.querySelector('time') ||
                 commentEl.querySelector('.comments-comment-meta__timestamp');
   const timestamp = timeEl ? timeEl.getAttribute('datetime') || timeEl.textContent.trim() : '';
+
+  console.log('[PostEngagement] Extracted commenter:', { name, title: title || '(no title)', hasComment: !!comment });
 
   return {
     name,
@@ -479,11 +485,23 @@ async function extractLikers() {
     // Scroll modal to load all likers
     await scrollModalToBottom(modal);
 
-    // Extract liker profiles from modal
-    const likerElements = modal.querySelectorAll('li') ||
-                         modal.querySelectorAll('[data-test-id="social-actions-modal-list-item"]');
+    // Extract liker profiles from modal - try multiple container selectors
+    let likerElements = modal.querySelectorAll('li.artdeco-list__item');
 
-    console.log(`[PostEngagement] Found ${likerElements.length} liker elements`);
+    if (likerElements.length === 0) {
+      likerElements = modal.querySelectorAll('li');
+    }
+
+    if (likerElements.length === 0) {
+      likerElements = modal.querySelectorAll('[data-test-id="social-actions-modal-list-item"]');
+    }
+
+    if (likerElements.length === 0) {
+      // Try looking for profile cards
+      likerElements = modal.querySelectorAll('.scaffold-finite-scroll__content > div');
+    }
+
+    console.log(`[PostEngagement] Found ${likerElements.length} liker elements in modal`);
 
     const seenProfiles = new Set();
 
@@ -577,11 +595,13 @@ async function scrollModalToBottom(modal) {
 
 // Extract data from a single liker element
 function extractLikerData(likerEl) {
-  // Find profile link
+  // Find profile link - try multiple selectors
   const profileLink = likerEl.querySelector('a[href*="/in/"]') ||
-                     likerEl.querySelector('a[href*="linkedin.com/in/"]');
+                     likerEl.querySelector('a[href*="linkedin.com/in/"]') ||
+                     Array.from(likerEl.querySelectorAll('a')).find(a => a.href.includes('/in/'));
 
   if (!profileLink) {
+    console.log('[PostEngagement] No profile link found in liker element');
     return null;
   }
 
@@ -589,22 +609,33 @@ function extractLikerData(likerEl) {
   const profileUrl = extractCleanLinkedInUrl(profileLink);
 
   if (!profileUrl) {
-    console.log('[PostEngagement] Could not extract clean profile URL from liker');
+    console.log('[PostEngagement] Could not extract profile URL from liker');
     return null;
   }
 
   // Extract name (clean it from accessibility text)
+  // Try multiple selectors for the modal structure
   const nameEl = likerEl.querySelector('.artdeco-entity-lockup__title') ||
                 likerEl.querySelector('[data-test-id="member-name"]') ||
+                likerEl.querySelector('.feed-shared-actor__name') ||
+                likerEl.querySelector('span[aria-hidden="true"]') ||
                 likerEl.querySelector('span[dir="ltr"]') ||
+                profileLink.querySelector('span') ||
                 profileLink;
+
   const rawName = nameEl ? nameEl.textContent.trim() : 'Unknown';
   const name = cleanLinkedInName(rawName);
 
-  // Extract title/headline
+  // Extract title/headline - try multiple selectors
   const titleEl = likerEl.querySelector('.artdeco-entity-lockup__subtitle') ||
-                 likerEl.querySelector('[data-test-id="member-headline"]');
+                 likerEl.querySelector('[data-test-id="member-headline"]') ||
+                 likerEl.querySelector('.artdeco-entity-lockup__caption') ||
+                 likerEl.querySelector('.feed-shared-actor__description') ||
+                 likerEl.querySelector('.t-12.t-black--light.t-normal');
+
   const title = titleEl ? titleEl.textContent.trim() : '';
+
+  console.log('[PostEngagement] Extracted liker:', { name, title: title || '(no title)', profileUrl });
 
   return {
     name,
@@ -661,17 +692,15 @@ function extractCleanLinkedInUrl(profileLink) {
       console.log('[PostEngagement] Detected encrypted URL, attempting to find vanity URL...');
 
       // Try to find the vanity URL in other attributes
-      // Check if there's a data-tracking-control-name or similar
       const vanityUrl = findVanityUrlInElement(profileLink);
       if (vanityUrl) {
+        console.log('[PostEngagement] Found clean vanity URL:', vanityUrl);
         return vanityUrl;
       }
 
-      // If we still have an encrypted URL, we might need to accept it
-      // but log a warning
-      console.warn('[PostEngagement] Could not find vanity URL, using encrypted URL as fallback:', href);
-      // Return null to skip encrypted URLs
-      return null;
+      // Use encrypted URL as fallback - it still works when logged in
+      console.warn('[PostEngagement] Using encrypted URL as fallback:', href);
+      return `https://www.linkedin.com/in/${username}/`;
     }
 
     // Return the clean vanity URL
